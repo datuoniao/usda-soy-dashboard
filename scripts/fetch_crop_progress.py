@@ -176,8 +176,13 @@ def load_existing():
     out = {}
     with open(CSV_PATH, encoding="utf-8-sig") as f:
         for r in csv.DictReader(f):
-            out[r["week_ending"]] = {k: (float(r[k]) if r.get(k) not in ("", None) else None)
-                                     for k in FIELDS}
+            rec = {"week_ending": r["week_ending"]}
+            for k in FIELDS:
+                if k == "week_ending":       # 日期列不做数值转换
+                    continue
+                v = r.get(k)
+                rec[k] = float(v) if v not in ("", None) else None
+            out[rec["week_ending"]] = rec
     return out
 
 
