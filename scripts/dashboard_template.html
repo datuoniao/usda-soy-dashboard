@@ -91,8 +91,8 @@
   <div class="wrap">
     <h1>USDA 美豆数据看板</h1>
     <div class="sub">
-      出口销售 · 对华口径 · 干旱率 · 压榨利润 ｜ 数据全部取自 USDA 官方源 ·
-      出口销售截至 <b>__ASOF_EXPORT__</b> 当周 · 干旱率截至 <b>__ASOF_DROUGHT__</b>
+      出口销售 · 对华口径 · 干旱率 · 作物优良率 · 压榨利润 ｜ 数据全部取自 USDA 官方源 ·
+      出口销售与优良率截至 <b>__ASOF_EXPORT__</b> 当周 · 干旱率截至 <b>__ASOF_DROUGHT__</b>
     </div>
     <div class="chiprow" id="kpis"></div>
   </div>
@@ -104,15 +104,17 @@
   <a href="#s2">② 对华与除中国外</a>
   <a href="#s3">③ 美豆粕出口</a>
   <a href="#s4">④ 美豆干旱率</a>
-  <a href="#s5">⑤ 伊利诺伊压榨</a>
-  <a href="#s6">口径与校验</a>
+  <a href="#s5">⑤ 作物生长与优良率</a>
+  <a href="#s6">⑥ 伊利诺伊压榨</a>
+  <a href="#s7">数据快照</a>
 </div></nav>
 
 <div class="wrap">
 
 <h2 class="sec" id="s0">数据来源<span>全部为 USDA 一手数据，直接调用官方接口获取</span></h2>
 <p class="lead">
-  本看板覆盖美豆基本面最常跟踪的五组周度指标：出口销售、对华出口、豆粕出口、产区干旱率、伊利诺伊压榨利润与油粕价格。
+  本看板覆盖美豆基本面最常跟踪的六组周度指标：出口销售、对华出口、豆粕出口、产区干旱率、
+  作物生长与优良率、伊利诺伊压榨利润与油粕价格。
   所有数据均由脚本直接调用 USDA 官方接口获取，页面为纯静态文件，可离线打开。
 </p>
 
@@ -153,7 +155,20 @@
   <div class="card"><div class="card-h"><h3>美豆重度干旱率（D3 及以上）</h3><span class="unit">%</span></div><div class="legend" id="lg-c14"></div><div id="c14"></div></div>
 </div>
 
-<h2 class="sec" id="s5">⑤ 伊利诺伊压榨利润与油粕价格<span>USDA AMS《Soybean Crush Report》· 周度</span></h2>
+<h2 class="sec" id="s5">⑤ 美豆作物生长与优良率<span>USDA NASS《Crop Progress》· 周度</span></h2>
+<p class="lead">
+  作物生长报告每周一发布，覆盖播种、出苗、开花、结荚、落叶、收获全程，并给出各州的苗情评级。
+  这里取报表中「18 States」全国合计行：优良率 = Good + Excellent，差劣率 = Very poor + Poor。
+  横轴为日历日，与干旱率模块一致，便于逐年对比生长季进程。
+</p>
+<div class="grid">
+  <div class="card"><div class="card-h"><h3>美豆优良率（Good + Excellent）</h3><span class="unit">%</span></div><div class="legend" id="lg-c19"></div><div id="c19"></div></div>
+  <div class="card"><div class="card-h"><h3>美豆差劣率（Very poor + Poor）</h3><span class="unit">%</span></div><div class="legend" id="lg-c20"></div><div id="c20"></div></div>
+  <div class="card"><div class="card-h"><h3>美豆播种进度</h3><span class="unit">%</span></div><div class="legend" id="lg-c21"></div><div id="c21"></div></div>
+  <div class="card"><div class="card-h"><h3>美豆收获进度</h3><span class="unit">%</span></div><div class="legend" id="lg-c22"></div><div id="c22"></div></div>
+</div>
+
+<h2 class="sec" id="s6">⑥ 伊利诺伊压榨利润与油粕价格<span>USDA AMS《Soybean Crush Report》· 周度</span></h2>
 <p class="lead">毛利 = 每蒲式耳大豆产出的油粕总值 − 1 号黄大豆卡车价；产出率按报表固定值（油 11.80–11.88 lb、粕 46.50 lb）。</p>
 <div class="box alert">
   <h4>⚠️ 本模块数据覆盖不完整（务必留意）</h4>
@@ -170,7 +185,7 @@
   <div class="card"><div class="card-h"><h3>1 号黄大豆卡车价</h3><span class="unit">美元/蒲式耳</span></div><div class="legend" id="lg-c18"></div><div id="c18"></div></div>
 </div>
 
-<h2 class="sec" id="s6">最新一期数据快照<span>随数据自动更新</span></h2>
+<h2 class="sec" id="s7">最新一期数据快照<span>随数据自动更新</span></h2>
 <p class="lead">下表列出美豆最新一期出口销售的关键指标，并与上一周、去年同周对比。</p>
 <table id="chk"></table>
 
@@ -185,6 +200,11 @@
     <li><b>干旱率</b>：USDA OCE/WAOB《Agriculture in Drought》官方大豆口径，直接取官方周度序列（2000 年至今，共 1405 周）。
       D1/D2/D3/D4 均为「该等级及以上」的占比。看板同时内置了一份「USDM 州级面积 × NASS 州产量权重」的自建序列用于交叉校验，
       两者走势一致，但自建口径在 D1 档位上偏高（2026-10-06 自建 31.5% vs 官方 25%），故<b>最终以官方口径为准</b>。</li>
+    <li><b>作物生长与优良率</b>：USDA NASS《Crop Progress》周报文本，取各表中「18 States」全国合计行。
+      优良率 = Good + Excellent 评级占比，差劣率 = Very poor + Poor。
+      进度类表格的列序为「去年同期 / 上周 / 本周 / 五年均值」，本看板取本周值。
+      该报告在冬季（约 11 月下旬至次年 4 月）不含大豆相关表，故曲线为季节性分段。
+      18 States 口径覆盖约 96% 的大豆面积，与 NASS 公布口径一致。</li>
     <li><b>压榨数据</b>：USDA AMS《Soybean Crush Report》(GX_GR211)，经 ESMIS 归档文本解析。覆盖 2020-01～2022-07。</li>
     <li>本看板所有数据均来自 USDA 公开数据源；「重度干旱率」按原文 5% 的口径对应 D3 及以上，已由官方序列验证一致。</li>
   </ul>

@@ -49,6 +49,9 @@ jobs:
         continue-on-error: true      # 部分网络环境下 AMS 不可达，不阻塞更新
         run: python scripts/fetch_crush.py
 
+      - name: 取数 —— 作物生长报告与优良率
+        run: python scripts/fetch_crop_progress.py
+
       - name: 构建数据与页面
         run: |
           python scripts/build_extra.py

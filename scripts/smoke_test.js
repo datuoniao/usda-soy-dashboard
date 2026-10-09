@@ -61,7 +61,7 @@ try {
 
 // ---------- 3. 渲染产物
 const charts = OUT.DATA ? OUT.DATA.charts : [];
-check('图表数量 = 18', charts.length === 18, '实际 ' + charts.length);
+check('图表数量 = 22', charts.length === 22, '实际 ' + charts.length);
 check('KPI 渲染', (store['kpis'] ? store['kpis']._html : '').length > 100);
 let svgCount = 0;
 charts.forEach(function (c) {
@@ -70,7 +70,7 @@ charts.forEach(function (c) {
   const lg = store['lg-' + c.id] ? store['lg-' + c.id]._html : '';
   if (lg.indexOf('<span>') < 0) console.log('    注意：legend 未渲染 ' + c.id);
 });
-check('18 张图均产出 <svg>', svgCount === 18, '实际 ' + svgCount);
+check('全部图表均产出 <svg>', svgCount === 22, '实际 ' + svgCount);
 
 const chk = store['chk'] ? store['chk']._html : '';
 check('快照表渲染', chk.indexOf('<thead>') >= 0);
@@ -112,13 +112,27 @@ check('关键指标与 USDA 公布值一致', numOk);
   check('占位符已替换 ' + p, html.indexOf(p) < 0);
 });
 
-// ---------- 6. 干旱锚点
+// ---------- 6. 干旱与优良率锚点
 const d13 = charts.filter(function (x) { return x.id === 'c13'; })[0];
 const lastD = d13.s[d13.s.length - 1].p[d13.s[d13.s.length - 1].p.length - 1][1];
 check('干旱率最新值 = 25%', lastD === 25, '实际 ' + lastD);
 const d14 = charts.filter(function (x) { return x.id === 'c14'; })[0];
 const lastD3 = d14.s[d14.s.length - 1].p[d14.s[d14.s.length - 1].p.length - 1][1];
 check('重度干旱率最新值 = 5%', lastD3 === 5, '实际 ' + lastD3);
+
+const c19 = charts.filter(function (x) { return x.id === 'c19'; })[0];
+check('优良率图有数据', c19 && c19.s.length > 0 && c19.s[c19.s.length - 1].p.length > 0,
+  c19 ? c19.s.length + ' 年' : '缺失');
+if (c19 && c19.s.length) {
+  const lastGe = c19.s[c19.s.length - 1];
+  const v = lastGe.p[lastGe.p.length - 1];
+  check('优良率最新值在合理区间(0-100)', v[1] >= 0 && v[1] <= 100, '实际 ' + v[1]);
+}
+['c20', 'c21', 'c22'].forEach(function (id) {
+  const c = charts.filter(function (x) { return x.id === id; })[0];
+  check('图表 ' + id + ' 有数据', !!c && c.s.length > 0 && c.s[0].p.length > 0,
+    c ? c.s.length + ' 年' : '缺失');
+});
 
 // ---------- 7. 无外部依赖
 check('无外部 CDN 引用', !/src\s*=\s*["']https?:/.test(html) && !/href\s*=\s*["']https?:/.test(html));

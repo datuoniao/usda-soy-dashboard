@@ -8,7 +8,8 @@
 | ② 对华与除中国外 | 对华净销售、对华累计、除中国外净销售、除中国外累计 | USDA FAS — ESR（国家维度） |
 | ③ 美豆粕出口销售 | 净销售 / 累计总销售 / 装船 / 累计装船 | USDA FAS — ESR（Soybean cake & meal） |
 | ④ 美豆干旱率 | 干旱率 D1+ / 重度干旱率 D3+ | USDA OCE·WAOB — Agriculture in Drought |
-| ⑤ 伊利诺伊压榨 | 压榨毛利 / 毛豆油价 / 48% 豆粕价 / 黄大豆价 | USDA AMS — Soybean Crush Report |
+| ⑤ 作物生长与优良率 | 优良率 / 差劣率 / 播种进度 / 收获进度 | USDA NASS — Crop Progress |
+| ⑥ 伊利诺伊压榨 | 压榨毛利 / 毛豆油价 / 48% 豆粕价 / 黄大豆价 | USDA AMS — Soybean Crush Report |
 
 在线查看（GitHub Pages）：`https://<你的用户名>.github.io/<仓库名>/`
 
@@ -32,6 +33,10 @@
   并在 `data/raw/drought_source.json` 中标记实际使用的口径。
 - **压榨数据**：USDA AMS《Soybean Crush Report》(GX_GR211)，经 ESMIS 归档文本解析。
   毛利 = 每蒲式耳大豆产出的油粕总值 − 1 号黄大豆卡车价。
+- **作物生长与优良率**：USDA NASS《Crop Progress》周报文本（ESMIS 归档），取各表「18 States」全国合计行。
+  优良率 = Good + Excellent，差劣率 = Very poor + Poor；进度类表格列序为
+  「去年同期 / 上周 / 本周 / 五年均值」，本看板取本周值。
+  该报告冬季（约 11 月下旬至次年 4 月）不含大豆相关表，曲线为季节性分段。
 
 ## 快速开始
 
@@ -44,6 +49,7 @@ python scripts/fetch_esr.py        # 出口销售（大豆 + 豆粕，各 8 个�
 python scripts/fetch_psd.py        # 年度出口预测（进度分母）
 python scripts/fetch_drought.py    # 美豆干旱率
 python scripts/fetch_crush.py      # 伊利诺伊压榨周报
+python scripts/fetch_crop_progress.py  # 作物生长报告与优良率（增量；--full 可全量回填）
 python scripts/build_extra.py      # 压榨 CSV
 python scripts/build_data.py       # 聚合清洗
 python scripts/build_dashboard.py  # 生成 index.html

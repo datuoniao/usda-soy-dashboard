@@ -135,6 +135,39 @@ def build():
     add("c14", "美豆重度干旱率（D3 及以上）", "%", "日历日（1月1日 → 12月31日）",
         s14, xmin=1, xmax=366)
 
+    # ---------- 模块五：作物生长报告 / 优良率
+    PAL = ["#8a5a2b", "#4a9d5f", "#e0b429", "#e8710a", "#3f74cf",
+           "#4b4f55", "#8259c9", "#d94a4a", "#b03a6e", "#2f9fa6"]
+    cp = load_csv("crop_progress.csv")
+    cp_years = sorted({r["week_ending"][:4] for r in cp})
+    CPY = cp_years[-8:]
+
+    def crop_series(col):
+        by = {}
+        for r in cp:
+            y = r["week_ending"][:4]
+            if y not in CPY:
+                continue
+            v = fnum(r, col)
+            if v is None:
+                continue
+            m, d = int(r["week_ending"][5:7]), int(r["week_ending"][8:10])
+            doy = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334][m - 1] + d
+            by.setdefault(y, []).append([doy, v])
+        cols = {y: PAL[i % len(PAL)] for i, y in enumerate(sorted(by))}
+        keys = sorted(by)
+        return series(by, keys, cols, keys[-1] if keys else None)
+
+    add("c19", "美豆优良率（Good + Excellent）", "%", "日历日（1月1日 → 12月31日）",
+        crop_series("ge_pct"), xmin=1, xmax=366,
+        note="取自 NASS《Crop Progress》周报「18 States」全国合计行")
+    add("c20", "美豆差劣率（Very poor + Poor）", "%", "日历日（1月1日 → 12月31日）",
+        crop_series("vp_pct"), xmin=1, xmax=366)
+    add("c21", "美豆播种进度", "%", "日历日（1月1日 → 12月31日）",
+        crop_series("planted_pct"), xmin=1, xmax=366)
+    add("c22", "美豆收获进度", "%", "日历日（1月1日 → 12月31日）",
+        crop_series("harvested_pct"), xmin=1, xmax=366)
+
     cy = sorted({r["my_label"] for r in cr}, key=lambda s: s[:4])
     CCOL = {y: COLORS.get(y, "#5b6470") for y in cy}
     hl_c = cy[-1] if cy else None
@@ -169,6 +202,17 @@ def build():
                 (datetime.date.fromisoformat(r["week_ending"]) - target).days))
     crush_last = cr[-1] if cr else None
 
+    cp_ge = [r for r in cp if fnum(r, "ge_pct") is not None]
+    cp_last = cp_ge[-1] if cp_ge else None
+    cp_yago = None
+    if cp_last:
+        tgt = datetime.date.fromisoformat(cp_last["week_ending"]) - datetime.timedelta(days=364)
+        cands = [r for r in cp_ge
+                 if abs((datetime.date.fromisoformat(r["week_ending"]) - tgt).days) <= 10]
+        if cands:
+            cp_yago = min(cands, key=lambda r: abs(
+                (datetime.date.fromisoformat(r["week_ending"]) - tgt).days))
+
     def w(v):
         return f"{v/10:,.2f}" if v is not None else "—"
 
@@ -188,6 +232,10 @@ def build():
                     + (f'去年同期 {float(dr_yago["soy_d1plus"]):.0f}%' if dr_yago else "—")})
         kpi.append({"v": f'{float(dr_last["soy_d3plus"]):.0f}', "u": "%",
                     "l": "重度干旱率 D3+", "d": dr_last["week_ending"]})
+    if cp_last:
+        kpi.append({"v": f'{fnum(cp_last,"ge_pct"):.0f}', "u": "%",
+                    "l": "美豆优良率", "d": f'{cp_last["week_ending"]} 当周；'
+                    + (f'去年同期 {fnum(cp_yago,"ge_pct"):.0f}%' if cp_yago else '—')})
     if crush_last:
         kpi.append({"v": f'{fnum(crush_last,"crush_margin_usd_bu"):.2f}', "u": "美元/蒲",
                     "l": "伊利诺伊压榨毛利", "d": f'{crush_last["week_ending"]}（当期数据止于此）'})
@@ -222,6 +270,7 @@ def build():
                    "asof_export": latest,
                    "asof_drought": dr_last["week_ending"] if dr_last else "—",
                    "asof_crush": crush_last["week_ending"] if crush_last else "—",
+                   "asof_crop": cp_last["week_ending"] if cp_last else "—",
                }}
 
     tpl = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
