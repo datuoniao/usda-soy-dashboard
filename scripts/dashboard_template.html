@@ -52,10 +52,23 @@
   .card-h h3{margin:0;font-size:13.5px;font-weight:600}
   .card-h .unit{font-size:11.5px;color:var(--ink3);white-space:nowrap}
   .note{font-size:11px;color:var(--ink3);margin:2px 0 4px}
-  .legend{display:flex;flex-wrap:wrap;gap:4px 13px;margin:7px 0 2px}
-  .legend i{display:inline-block;width:15px;height:2.6px;border-radius:2px;
-    vertical-align:middle;margin-right:5px}
-  .legend span{font-size:11px;color:var(--ink2)}
+  .legend{display:flex;flex-wrap:wrap;gap:3px 4px;margin:7px 0 2px}
+  .legend i{display:inline-block;width:14px;height:2.6px;border-radius:2px;
+    margin-right:5px;flex:none}
+  .legend button{font:inherit;font-size:11px;cursor:pointer;background:none;border:0;
+    padding:2px 6px;border-radius:6px;display:inline-flex;align-items:center;
+    color:var(--ink2);line-height:1.4}
+  .legend button:hover{background:#eef1f4}
+  .legend button.off{opacity:.3;text-decoration:line-through}
+  .yearbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:9px 14px;margin:0 0 18px;font-size:12.5px;color:var(--ink2)}
+  .yearbar .lbl{font-weight:600;color:var(--ink)}
+  .yearbar button{font:inherit;font-size:12px;cursor:pointer;border:1px solid var(--line);
+    background:#fff;color:var(--ink2);border-radius:7px;padding:4px 12px}
+  .yearbar button:hover{background:#eef1f4;color:var(--ink)}
+  .yearbar .hint{margin-left:auto;color:var(--ink3);font-size:11.5px}
+  .chart-empty{color:var(--ink3);font-size:12px;padding:120px 0;text-align:center}
   svg{display:block;width:100%;height:auto}
   .axis{stroke:#e6e9ed;stroke-width:1}
   .axis-t{fill:#98a1ab;font-size:10.5px}
@@ -110,6 +123,15 @@
 </div></nav>
 
 <div class="wrap">
+
+<div class="yearbar">
+  <span class="lbl">年份显示</span>
+  <button type="button" data-preset="all">全部年份</button>
+  <button type="button" data-preset="recent5">近 5 年</button>
+  <button type="button" data-preset="recent3">近 3 年</button>
+  <button type="button" data-preset="last">仅最新</button>
+  <span class="hint">点击任意图表下方的年份图例，可单独显示/隐藏该年份（逐图生效）</span>
+</div>
 
 <h2 class="sec" id="s0">数据来源<span>全部为 USDA 一手数据，直接调用官方接口获取</span></h2>
 <p class="lead">
@@ -278,14 +300,17 @@ function drawChart(id, cfg){
 
   const yt = niceTicks(yMin, yMax, 5);
   let xt;
-  if (xMax > 100){
+  if (cfg.xm === 'day'){
     xt = [];
     for (let m = 1; m <= 12; m++){
-      xt.push({ v: [0,31,59,90,120,151,181,212,243,273,304,334][m-1] + 1, t: m + '月' });
+      const v = [1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335][m - 1];
+      if (v >= xMin && v <= xMax) xt.push({ v: v, t: m + '月' });
     }
   } else {
     xt = [];
-    [1,7,13,19,25,31,37,43,49,53].forEach(function(w){ if (w <= xMax) xt.push({ v: w, t: String(w) }); });
+    [1, 7, 13, 19, 25, 31, 37, 43, 49, 53].forEach(function(w){
+      if (w >= xMin && w <= xMax) xt.push({ v: w, t: String(w) });
+    });
   }
 
   let s = '';
@@ -325,12 +350,94 @@ function drawChart(id, cfg){
   host.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet">' + s + '</svg>';
 }
 
-function renderLegend(id, series){
+/* ---------- 年份交互：图例开关 + 全局筛选 ---------- */
+const ACTIVE = {};          // chartId -> { 年份label: 是否显示 }
+
+function chartById(cid){
+  for (let i = 0; i < DATA.charts.length; i++){
+    if (DATA.charts[i].id === cid) return DATA.charts[i];
+  }
+  return null;
+}
+
+function initActive(){
+  DATA.charts.forEach(function(c){
+    ACTIVE[c.id] = {};
+    c.s.forEach(function(s){ ACTIVE[c.id][s.label] = true; });
+  });
+}
+
+function renderLegend(id, series, cid){
   const host = el(id);
   if (!host) return;
+  const act = ACTIVE[cid] || {};
   host.innerHTML = series.map(function(s){
-    return '<span><i style="background:' + s.color + '"></i>' + s.label + '</span>';
+    const off = act[s.label] === false;
+    return '<button type="button" data-c="' + cid + '" data-l="' + s.label + '"' +
+           (off ? ' class="off"' : '') + '>' +
+           '<i style="background:' + s.color + '"></i>' + s.label + '</button>';
   }).join('');
+}
+
+function redraw(cid){
+  const c = chartById(cid);
+  const host = el(cid);
+  if (!c || !host) return;
+  const act = ACTIVE[cid] || {};
+  const ser = c.s.filter(function(s){ return act[s.label] !== false; });
+  if (!ser.length){
+    host.innerHTML = '<div class="chart-empty">已隐藏全部年份 —— 点击上方图例恢复</div>';
+    return;
+  }
+  drawChart(cid, { s: ser, x: c.x, xmin: c.xmin, xmax: c.xmax,
+                   y0: c.y0, xm: c.xm });
+}
+
+function toggleYear(cid, label){
+  if (!ACTIVE[cid]) return;
+  ACTIVE[cid][label] = (ACTIVE[cid][label] === false);
+  const c = chartById(cid);
+  renderLegend('lg-' + cid, c.s, cid);
+  redraw(cid);
+}
+
+function bindLegend(cid){
+  const host = el('lg-' + cid);
+  if (!host || host.__bound) return;
+  host.__bound = true;
+  host.addEventListener('click', function(ev){
+    let n = ev.target;
+    while (n && n.tagName !== 'BUTTON') n = n.parentNode;
+    if (!n || !n.getAttribute) return;
+    toggleYear(n.getAttribute('data-c'), n.getAttribute('data-l'));
+  });
+}
+
+function applyPreset(kind){
+  DATA.charts.forEach(function(c){
+    const n = c.s.length;
+    c.s.forEach(function(s, i){
+      let on = true;
+      if (kind === 'recent5') on = i >= Math.max(0, n - 5);
+      else if (kind === 'recent3') on = i >= Math.max(0, n - 3);
+      else if (kind === 'last') on = i === n - 1;
+      ACTIVE[c.id][s.label] = on;
+    });
+    renderLegend('lg-' + c.id, c.s, c.id);
+    redraw(c.id);
+  });
+}
+
+function bindYearbar(){
+  const bar = document.querySelector ? document.querySelector('.yearbar') : null;
+  if (!bar || !bar.addEventListener) return;
+  bar.addEventListener('click', function(ev){
+    let n = ev.target;
+    while (n && n.tagName !== 'BUTTON') n = n.parentNode;
+    if (!n || !n.getAttribute) return;
+    const p = n.getAttribute('data-preset');
+    if (p) applyPreset(p);
+  });
 }
 
 function renderKpis(){
@@ -373,18 +480,23 @@ function renderCheck(){
 
 function boot(){
   renderKpis();
+  initActive();
   DATA.charts.forEach(function(c){
-    renderLegend('lg-' + c.id, c.s);
-    drawChart(c.id, c);
+    renderLegend('lg-' + c.id, c.s, c.id);
+    redraw(c.id);
+    bindLegend(c.id);
     if (c.note){
       const n = el('nt-' + c.id);
       if (n) n.textContent = c.note;
     }
   });
+  bindYearbar();
   renderCheck();
 }
 
-window.OUT = { drawChart: drawChart, DATA: DATA, boot: boot };
+window.OUT = { drawChart: drawChart, DATA: DATA, boot: boot,
+               applyPreset: applyPreset, toggleYear: toggleYear,
+               chartById: chartById, ACTIVE: ACTIVE };
 if (document.getElementById('kpis')) boot();
 </script>
 </body>

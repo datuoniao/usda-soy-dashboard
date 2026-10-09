@@ -68,9 +68,23 @@ def build():
 
     charts = []
 
-    def add(cid, title, unit, xlab, ser, xmin=1, xmax=53, y0=True, note=""):
+    # 月首/月末的「日序」，用于把横轴对齐到整月
+    MS = [1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335]
+    ME = [31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365]
+
+    def add(cid, title, unit, xlab, ser, xmin=1, xmax=53, y0=True, note="",
+            snap=False, xm="week"):
+        """snap=True 时按数据实际覆盖的月份收缩横轴，避免大片空白。
+        xm: 横轴类型 —— week（营销年度第几周）或 day（日历日）。"""
+        if snap and ser:
+            xs = [p[0] for s in ser for p in s["p"]]
+            if xs:
+                lo = datetime.date(2026, 1, 1) + datetime.timedelta(days=int(min(xs)) - 1)
+                hi = datetime.date(2026, 1, 1) + datetime.timedelta(days=int(max(xs)) - 1)
+                xmin, xmax = MS[lo.month - 1], ME[hi.month - 1]
         charts.append({"id": cid, "t": title, "u": unit, "x": xlab,
-                       "s": ser, "xmin": xmin, "xmax": xmax, "y0": y0, "note": note})
+                       "s": ser, "xmin": xmin, "xmax": xmax, "y0": y0,
+                       "note": note, "xm": xm})
 
     hl_soy = soy_years[-1]
     hl_meal = meal_years[-1]
@@ -131,9 +145,9 @@ def build():
     s13, _ = drought_series("soy_d1plus")
     s14, _ = drought_series("soy_d3plus")
     add("c13", "美豆干旱率（D1 及以上）", "%", "日历日（1月1日 → 12月31日）",
-        s13, xmin=1, xmax=366)
+        s13, xmin=1, xmax=366, xm="day")
     add("c14", "美豆重度干旱率（D3 及以上）", "%", "日历日（1月1日 → 12月31日）",
-        s14, xmin=1, xmax=366)
+        s14, xmin=1, xmax=366, xm="day")
 
     # ---------- 模块五：作物生长报告 / 优良率
     PAL = ["#8a5a2b", "#4a9d5f", "#e0b429", "#e8710a", "#3f74cf",
@@ -158,15 +172,15 @@ def build():
         keys = sorted(by)
         return series(by, keys, cols, keys[-1] if keys else None)
 
-    add("c19", "美豆优良率（Good + Excellent）", "%", "日历日（1月1日 → 12月31日）",
-        crop_series("ge_pct"), xmin=1, xmax=366,
+    add("c19", "美豆优良率（Good + Excellent）", "%", "日历日",
+        crop_series("ge_pct"), snap=True, xm="day",
         note="取自 NASS《Crop Progress》周报「18 States」全国合计行")
-    add("c20", "美豆差劣率（Very poor + Poor）", "%", "日历日（1月1日 → 12月31日）",
-        crop_series("vp_pct"), xmin=1, xmax=366)
-    add("c21", "美豆播种进度", "%", "日历日（1月1日 → 12月31日）",
-        crop_series("planted_pct"), xmin=1, xmax=366)
-    add("c22", "美豆收获进度", "%", "日历日（1月1日 → 12月31日）",
-        crop_series("harvested_pct"), xmin=1, xmax=366)
+    add("c20", "美豆差劣率（Very poor + Poor）", "%", "日历日",
+        crop_series("vp_pct"), snap=True, xm="day")
+    add("c21", "美豆播种进度", "%", "日历日",
+        crop_series("planted_pct"), snap=True, xm="day")
+    add("c22", "美豆收获进度", "%", "日历日",
+        crop_series("harvested_pct"), snap=True, xm="day")
 
     cy = sorted({r["my_label"] for r in cr}, key=lambda s: s[:4])
     CCOL = {y: COLORS.get(y, "#5b6470") for y in cy}

@@ -52,7 +52,9 @@ const OUT = {};
 
 try {
   new Function('document', 'window', 'IntersectionObserver', 'OUT',
-    js + '\nOUT.boot = boot; OUT.DATA = DATA; OUT.drawChart = drawChart;'
+    js + '\nOUT.boot = boot; OUT.DATA = DATA; OUT.drawChart = drawChart;' +
+         '\nOUT.applyPreset = applyPreset; OUT.toggleYear = toggleYear;' +
+         '\nOUT.ACTIVE = ACTIVE; OUT.chartById = chartById;'
   )(doc, win, IO, OUT);
   check('脚本在 DOM stub 下执行', true);
 } catch (e) {
@@ -68,7 +70,7 @@ charts.forEach(function (c) {
   const h = store[c.id] ? store[c.id]._html : '';
   if (h.indexOf('<svg') === 0) svgCount++;
   const lg = store['lg-' + c.id] ? store['lg-' + c.id]._html : '';
-  if (lg.indexOf('<span>') < 0) console.log('    注意：legend 未渲染 ' + c.id);
+  if (lg.indexOf('<button') < 0) console.log('    注意：legend 未渲染 ' + c.id);
 });
 check('全部图表均产出 <svg>', svgCount === 22, '实际 ' + svgCount);
 
@@ -134,8 +136,55 @@ if (c19 && c19.s.length) {
     c ? c.s.length + ' 年' : '缺失');
 });
 
-// ---------- 7. 无外部依赖
-check('无外部 CDN 引用', !/src\s*=\s*["']https?:/.test(html) && !/href\s*=\s*["']https?:/.test(html));
+// ---------- 7. 横轴收缩（作物模块不应铺满全年）
+['c19', 'c20', 'c21', 'c22'].forEach(function (id) {
+  const c = charts.filter(function (x) { return x.id === id; })[0];
+  const span = c ? c.xmax - c.xmin : 0;
+  check(id + ' 横轴已按数据收缩', c && span < 300 && c.xmin > 60,
+    c ? (c.xmin + '~' + c.xmax) : '缺失');
+});
+check('干旱模块保持全年横轴',
+  (charts.filter(function (x) { return x.id === 'c13'; })[0] || {}).xmax === 366);
+check('出口销售保持周序号横轴',
+  (charts.filter(function (x) { return x.id === 'c1'; })[0] || {}).xmax === 53);
+
+// ---------- 8. 年份筛选交互
+function activeCount(cid) {
+  const a = OUT.ACTIVE[cid] || {};
+  return Object.keys(a).filter(function (k) { return a[k] !== false; }).length;
+}
+check('初始状态全部年份可见', charts.every(function (c) {
+  return activeCount(c.id) === c.s.length;
+}));
+
+OUT.applyPreset('last');
+check('预设「仅最新」每图只留 1 年', charts.every(function (c) {
+  return activeCount(c.id) === 1;
+}));
+const c19c = charts.filter(function (x) { return x.id === 'c19'; })[0];
+const lastLbl = c19c.s[c19c.s.length - 1].label;
+check('「仅最新」保留的是最后一年', OUT.ACTIVE['c19'][lastLbl] === true);
+
+OUT.toggleYear('c19', lastLbl);
+check('单独再关掉一年即为空', activeCount('c19') === 0);
+check('全部隐藏时渲染提示文案',
+  (store['c19']._html || '').indexOf('chart-empty') >= 0);
+
+OUT.applyPreset('recent3');
+check('预设「近 3 年」每图 3 年', charts.every(function (c) {
+  const n = Math.min(3, c.s.length);
+  return activeCount(c.id) === n;
+}));
+
+OUT.applyPreset('all');
+check('预设「全部年份」恢复', charts.every(function (c) {
+  return activeCount(c.id) === c.s.length;
+}));
+check('恢复后图表重新产出 svg', (store['c19']._html || '').indexOf('<svg') === 0);
+
+// ---------- 9. 无外部依赖
+check('无外部 CDN 引用',
+  !/src\s*=\s*["']https?:/.test(html) && !/href\s*=\s*["']https?:/.test(html));
 
 console.log('\n=== ' + pass + ' passed, ' + fail + ' failed ===');
 process.exit(fail ? 1 : 0);
