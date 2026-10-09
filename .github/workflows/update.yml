@@ -52,6 +52,22 @@ jobs:
       - name: 取数 —— 作物生长报告与优良率
         run: python scripts/fetch_crop_progress.py
 
+      - name: 取数 —— USDA PSD 各国大豆供需平衡
+        run: python scripts/fetch_psd_balance.py
+        env:
+          FAS_API_KEY: ${{ secrets.FAS_API_KEY }}
+
+      - name: 取数 —— 巴西 CONAB 大豆历史序列
+        continue-on-error: true      # 巴西政府站点偶发维护，不阻塞更新
+        run: python scripts/fetch_conab.py
+
+      - name: 取数 —— 美国月度大豆压榨
+        run: python scripts/fetch_fats_oils.py
+
+      - name: 取数 —— 气候（ENSO）与内河水位
+        continue-on-error: true      # NOAA / USGS 偶发限流，不阻塞更新
+        run: python scripts/fetch_climate.py
+
       - name: 构建数据与页面
         run: |
           python scripts/build_extra.py

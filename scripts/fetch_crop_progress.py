@@ -4,13 +4,18 @@
 数据源：ESMIS 归档的 Crop Progress 纯文本周报
         https://esmis.nal.usda.gov/publication/crop-progress?date=YYYY-MM
 
-抽取 4 个指标（均取报表中的 "18 States" 全国合计行）：
-  ge_pct        优良率 = Good + Excellent（%）
-  vp_pct        差劣率 = Very poor + Poor（%）
-  planted_pct   大豆播种进度（%）
-  harvested_pct 大豆收获进度（%）
+抽取 8 个指标（均取报表中的 "18 States" 全国合计行）：
+  ge_pct              优良率 = Good + Excellent（%）
+  vp_pct              差劣率 = Very poor + Poor（%）
+  planted_pct         播种进度（%）
+  emerged_pct         出芽进度（%）
+  blooming_pct        开花进度（%）
+  setting_pods_pct    结荚进度（%）
+  dropping_leaves_pct 落叶进度（%）
+  harvested_pct       收获进度（%）
 
 进度表的列序为「去年同期 / 上周 / 本周 / 五年均值」，故本周取第 3 个数值。
+优良率表的列序为「Very poor / Poor / Fair / Good / Excellent」。
 报表冬季不含大豆相关表，缺失项留空。
 
 用法：
@@ -40,7 +45,19 @@ START_YEAR = 2018          # --full 回填起始年
 MONTHS = range(4, 12)      # 大豆相关表只出现在 4–11 月的报告里
 REFRESH_MONTHS = 6         # 增量模式回看的月数
 WORKERS = 8                # ESMIS 单次请求较慢（数秒），必须并发
-FIELDS = ["week_ending", "ge_pct", "vp_pct", "planted_pct", "harvested_pct"]
+FIELDS = ["week_ending", "ge_pct", "vp_pct", "planted_pct", "emerged_pct",
+          "blooming_pct", "setting_pods_pct", "dropping_leaves_pct",
+          "harvested_pct"]
+
+# 各进度指标对应的报表表名（表名 -> 输出列）
+PROGRESS_TABLES = (
+    ("Soybeans Planted - Selected States", "planted_pct"),
+    ("Soybeans Emerged - Selected States", "emerged_pct"),
+    ("Soybeans Blooming - Selected States", "blooming_pct"),
+    ("Soybeans Setting Pods - Selected States", "setting_pods_pct"),
+    ("Soybeans Dropping Leaves - Selected States", "dropping_leaves_pct"),
+    ("Soybeans Harvested - Selected States", "harvested_pct"),
+)
 
 
 def get(url, timeout=60):
@@ -96,8 +113,7 @@ def parse_report(txt):
             rec["vp_pct"] = (v[0] or 0) + (v[1] or 0)
             rec["ge_pct"] = (v[3] or 0) + (v[4] or 0)
 
-    for key, pref in (("planted_pct", "Soybeans Planted - Selected States"),
-                      ("harvested_pct", "Soybeans Harvested - Selected States")):
+    for pref, key in PROGRESS_TABLES:
         v = _agg_row(txt, pref, 4)
         if v and v[2] is not None:
             rec[key] = v[2]      # 第 3 列 = 本周
@@ -153,7 +169,7 @@ def collect(months):
                 continue
             rec = parse_report(txt)
             if not rec["week_ending"]:
-                if rec["planted_pct"] is None and rec["harvested_pct"] is None:
+                if all(rec[k] is None for k in FIELDS if k != "week_ending"):
                     continue
                 rec["week_ending"] = week_ending_from_release(date)
             rows[rec["week_ending"]] = rec
@@ -171,18 +187,22 @@ def _safe_list(ym):
 
 
 def load_existing():
+    """读取已有 CSV；对新增列（老文件里没有的）留空，便于后续版本平滑升级。"""
     if not os.path.exists(CSV_PATH):
         return {}
     out = {}
     with open(CSV_PATH, encoding="utf-8-sig") as f:
         for r in csv.DictReader(f):
-            rec = {"week_ending": r["week_ending"]}
+            we = r.get("week_ending")
+            if not we:
+                continue
+            rec = {"week_ending": we}
             for k in FIELDS:
                 if k == "week_ending":       # 日期列不做数值转换
                     continue
                 v = r.get(k)
                 rec[k] = float(v) if v not in ("", None) else None
-            out[rec["week_ending"]] = rec
+            out[we] = rec
     return out
 
 
@@ -239,6 +259,9 @@ def main():
     have_ge = sum(1 for r in rows.values() if r["ge_pct"] is not None)
     print(f"\n下载 {n_dl} 个新文件；crop_progress.csv 共 {len(rows)} 周，"
           f"其中含优良率 {have_ge} 周")
+    for k in ("emerged_pct", "blooming_pct", "setting_pods_pct",
+              "dropping_leaves_pct"):
+        print(f"  含 {k}: {sum(1 for r in rows.values() if r[k] is not None)} 周")
     last = max(rows)
     print(f"最新 {last}: " + ", ".join(
         f"{k}={rows[last][k]}" for k in FIELDS if rows[last][k] is not None))

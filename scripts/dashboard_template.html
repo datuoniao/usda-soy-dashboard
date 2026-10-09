@@ -104,7 +104,7 @@
   <div class="wrap">
     <h1>USDA 美豆数据看板</h1>
     <div class="sub">
-      出口销售 · 对华口径 · 干旱率 · 作物优良率 · 压榨利润 ｜ 数据全部取自 USDA 官方源 ·
+      出口销售 · 对华口径 · 干旱率 · 作物生长 · 全球供需 · 巴西产量 · 压榨 · 气候与航运 ｜ 数据取自 USDA / CONAB / NOAA / USGS 官方源 ·
       出口销售与优良率截至 <b>__ASOF_EXPORT__</b> 当周 · 干旱率截至 <b>__ASOF_DROUGHT__</b>
     </div>
     <div class="chiprow" id="kpis"></div>
@@ -119,7 +119,11 @@
   <a href="#s4">④ 美豆干旱率</a>
   <a href="#s5">⑤ 作物生长与优良率</a>
   <a href="#s6">⑥ 伊利诺伊压榨</a>
-  <a href="#s7">数据快照</a>
+  <a href="#s7">⑦ 全球大豆供需</a>
+  <a href="#s8">⑧ 巴西大豆产量</a>
+  <a href="#s9">⑨ 美国月度压榨</a>
+  <a href="#s10">⑩ 气候与航运水位</a>
+  <a href="#s11">数据快照</a>
 </div></nav>
 
 <div class="wrap">
@@ -130,14 +134,16 @@
   <button type="button" data-preset="recent5">近 5 年</button>
   <button type="button" data-preset="recent3">近 3 年</button>
   <button type="button" data-preset="last">仅最新</button>
-  <span class="hint">点击任意图表下方的年份图例，可单独显示/隐藏该年份（逐图生效）</span>
+  <span class="hint">点击任意图表下方的图例可单独显示/隐藏该条曲线（逐图生效）。年度类图表按年份区间筛选，周度类图表按年份筛选。</span>
 </div>
 
-<h2 class="sec" id="s0">数据来源<span>全部为 USDA 一手数据，直接调用官方接口获取</span></h2>
+<h2 class="sec" id="s0">数据来源<span>全部为官方一手数据，直接调用各机构接口获取</span></h2>
 <p class="lead">
-  本看板覆盖美豆基本面最常跟踪的六组周度指标：出口销售、对华出口、豆粕出口、产区干旱率、
-  作物生长与优良率、伊利诺伊压榨利润与油粕价格。
-  所有数据均由脚本直接调用 USDA 官方接口获取，页面为纯静态文件，可离线打开。
+  本看板覆盖美豆基本面的九个板块：出口销售、对华出口、豆粕出口、产区干旱率、作物生长与优良率、
+  伊利诺伊压榨、全球大豆供需平衡、巴西大豆产量、美国月度压榨，以及气候（ENSO）与内河航运水位。
+  数据分别来自 USDA（FAS / NASS / OCE·WAOB）、巴西 CONAB、美国 NOAA 与 USGS，
+  全部为实物量、面积、进度与库存类指标，<b>不含任何价格、金额或期货持仓口径</b>。
+  页面为纯静态单文件，可离线打开。
 </p>
 
 <h2 class="sec" id="s1">① 美豆本年度出口销售<span>USDA FAS · Export Sales Reporting（周度）</span></h2>
@@ -179,15 +185,19 @@
 
 <h2 class="sec" id="s5">⑤ 美豆作物生长与优良率<span>USDA NASS《Crop Progress》· 周度</span></h2>
 <p class="lead">
-  作物生长报告每周一发布，覆盖播种、出苗、开花、结荚、落叶、收获全程，并给出各州的苗情评级。
+  作物生长报告每周一发布，覆盖播种、出芽、开花、结荚、落叶、收获全程，并给出各州的苗情评级。
   这里取报表中「18 States」全国合计行：优良率 = Good + Excellent，差劣率 = Very poor + Poor。
   横轴为日历日，与干旱率模块一致，便于逐年对比生长季进程。
 </p>
 <div class="grid">
+  <div class="card"><div class="card-h"><h3>美豆播种进度</h3><span class="unit">%</span></div><div class="legend" id="lg-c21"></div><div id="c21"></div></div>
+  <div class="card"><div class="card-h"><h3>美豆出芽进度</h3><span class="unit">%</span></div><div class="legend" id="lg-c23"></div><div id="c23"></div></div>
+  <div class="card"><div class="card-h"><h3>美豆开花进度</h3><span class="unit">%</span></div><div class="legend" id="lg-c24"></div><div id="c24"></div></div>
+  <div class="card"><div class="card-h"><h3>美豆结荚进度</h3><span class="unit">%</span></div><div class="legend" id="lg-c25"></div><div id="c25"></div></div>
+  <div class="card"><div class="card-h"><h3>美豆落叶进度</h3><span class="unit">%</span></div><div class="legend" id="lg-c26"></div><div id="c26"></div></div>
+  <div class="card"><div class="card-h"><h3>美豆收获进度</h3><span class="unit">%</span></div><div class="legend" id="lg-c22"></div><div id="c22"></div></div>
   <div class="card"><div class="card-h"><h3>美豆优良率（Good + Excellent）</h3><span class="unit">%</span></div><div class="legend" id="lg-c19"></div><div id="c19"></div></div>
   <div class="card"><div class="card-h"><h3>美豆差劣率（Very poor + Poor）</h3><span class="unit">%</span></div><div class="legend" id="lg-c20"></div><div id="c20"></div></div>
-  <div class="card"><div class="card-h"><h3>美豆播种进度</h3><span class="unit">%</span></div><div class="legend" id="lg-c21"></div><div id="c21"></div></div>
-  <div class="card"><div class="card-h"><h3>美豆收获进度</h3><span class="unit">%</span></div><div class="legend" id="lg-c22"></div><div id="c22"></div></div>
 </div>
 
 <h2 class="sec" id="s6">⑥ 伊利诺伊压榨利润与油粕价格<span>USDA AMS《Soybean Crush Report》· 周度</span></h2>
@@ -207,7 +217,56 @@
   <div class="card"><div class="card-h"><h3>1 号黄大豆卡车价</h3><span class="unit">美元/蒲式耳</span></div><div class="legend" id="lg-c18"></div><div id="c18"></div></div>
 </div>
 
-<h2 class="sec" id="s7">最新一期数据快照<span>随数据自动更新</span></h2>
+<h2 class="sec" id="s7">⑦ 全球大豆供需平衡<span>USDA FAS · PSD 数据库 · 年度</span></h2>
+<p class="lead">
+  取自 USDA PSD（Production, Supply and Distribution）数据库，商品码 <code>2222000</code>。
+  营销年度以起始年标注（2026 = 2026/27）。「全球」为 PSD 官方世界合计。
+  全部为实物量口径，不含价格。
+</p>
+<div class="grid">
+  <div class="card"><div class="card-h"><h3>大豆产量</h3><span class="unit">百万吨</span></div><div class="legend" id="lg-p1"></div><div id="p1"></div></div>
+  <div class="card"><div class="card-h"><h3>大豆收获面积</h3><span class="unit">百万公顷</span></div><div class="legend" id="lg-p2"></div><div id="p2"></div></div>
+  <div class="card"><div class="card-h"><h3>大豆单产</h3><span class="unit">吨/公顷</span></div><div class="legend" id="lg-p3"></div><div id="p3"></div></div>
+  <div class="card"><div class="card-h"><h3>大豆压榨量</h3><span class="unit">百万吨</span></div><div class="legend" id="lg-p4"></div><div id="p4"></div></div>
+  <div class="card"><div class="card-h"><h3>大豆出口量</h3><span class="unit">百万吨</span></div><div class="legend" id="lg-p5"></div><div id="p5"></div></div>
+  <div class="card"><div class="card-h"><h3>大豆进口量</h3><span class="unit">百万吨</span></div><div class="legend" id="lg-p6"></div><div id="p6"></div></div>
+  <div class="card"><div class="card-h"><h3>大豆期末库存</h3><span class="unit">百万吨</span></div><div class="legend" id="lg-p7"></div><div id="p7"></div></div>
+</div>
+
+<h2 class="sec" id="s8">⑧ 巴西大豆面积 / 单产 / 产量<span>CONAB 官方序列 × USDA PSD 对照</span></h2>
+<p class="lead">
+  CONAB（巴西国家供应公司）为巴西官方口径，序列自 1976/77 起；USDA PSD 为美国农业部的评估值。
+  两条曲线并列可直观看出两家机构对巴西产量的分歧。图中 CONAB 自 2000 年起显示。
+</p>
+<div class="grid">
+  <div class="card"><div class="card-h"><h3>巴西大豆种植面积</h3><span class="unit">百万公顷</span></div><div class="legend" id="lg-b1"></div><div id="b1"></div><div class="note" id="nt-b1"></div></div>
+  <div class="card"><div class="card-h"><h3>巴西大豆单产</h3><span class="unit">吨/公顷</span></div><div class="legend" id="lg-b2"></div><div id="b2"></div></div>
+  <div class="card"><div class="card-h"><h3>巴西大豆产量</h3><span class="unit">百万吨</span></div><div class="legend" id="lg-b3"></div><div id="b3"></div></div>
+</div>
+
+<h2 class="sec" id="s9">⑨ 美国大豆月度压榨<span>USDA NASS《Fats and Oils》· 月度</span></h2>
+<p class="lead">
+  月报主体表 «Soybean Crushing, Production, Consumption and Stocks - United States»，
+  取「本月」列。全部为实物量（压榨量、油粕产出、月末库存），不含任何价格。
+</p>
+<div class="grid">
+  <div class="card"><div class="card-h"><h3>美国大豆月度压榨量</h3><span class="unit">百万吨</span></div><div class="legend" id="lg-f1"></div><div id="f1"></div><div class="note" id="nt-f1"></div></div>
+  <div class="card"><div class="card-h"><h3>美国豆粕月度产量</h3><span class="unit">万吨</span></div><div class="legend" id="lg-f2"></div><div id="f2"></div></div>
+  <div class="card"><div class="card-h"><h3>美国豆粕月末库存</h3><span class="unit">万吨</span></div><div class="legend" id="lg-f3"></div><div id="f3"></div></div>
+  <div class="card"><div class="card-h"><h3>美国豆油月度产量</h3><span class="unit">亿磅</span></div><div class="legend" id="lg-f4"></div><div id="f4"></div></div>
+</div>
+
+<h2 class="sec" id="s10">⑩ 气候与航运水位<span>NOAA（ENSO）· USGS（内河水位）</span></h2>
+<p class="lead">
+  ENSO 是影响南美与北美大豆单产最重要的气候因子；密西西比河水位则直接决定美湾大豆出口的驳船物流条件。
+  两项均为官方公开数据源。
+</p>
+<div class="grid">
+  <div class="card"><div class="card-h"><h3>厄尔尼诺 / 拉尼娜指数（ONI）</h3><span class="unit">°C</span></div><div class="legend" id="lg-w1"></div><div id="w1"></div><div class="note" id="nt-w1"></div></div>
+  <div class="card"><div class="card-h"><h3>密西西比河水位（圣路易斯站）</h3><span class="unit">英尺</span></div><div class="legend" id="lg-w2"></div><div id="w2"></div><div class="note" id="nt-w2"></div></div>
+</div>
+
+<h2 class="sec" id="s11">最新一期数据快照<span>随数据自动更新</span></h2>
 <p class="lead">下表列出美豆最新一期出口销售的关键指标，并与上一周、去年同周对比。</p>
 <table id="chk"></table>
 
@@ -225,17 +284,34 @@
     <li><b>作物生长与优良率</b>：USDA NASS《Crop Progress》周报文本，取各表中「18 States」全国合计行。
       优良率 = Good + Excellent 评级占比，差劣率 = Very poor + Poor。
       进度类表格的列序为「去年同期 / 上周 / 本周 / 五年均值」，本看板取本周值。
+      出芽 / 开花 / 结荚 / 落叶 表同样取该行的本周值。
       该报告在冬季（约 11 月下旬至次年 4 月）不含大豆相关表，故曲线为季节性分段。
       18 States 口径覆盖约 96% 的大豆面积，与 NASS 公布口径一致。</li>
-    <li><b>压榨数据</b>：USDA AMS《Soybean Crush Report》(GX_GR211)，经 ESMIS 归档文本解析。覆盖 2020-01～2022-07。</li>
-    <li>本看板所有数据均来自 USDA 公开数据源；「重度干旱率」按原文 5% 的口径对应 D3 及以上，已由官方序列验证一致。</li>
+    <li><b>全球供需平衡</b>：USDA FAS PSD 数据库，商品码 <code>2222000</code>，接口
+      <code>api.fas.usda.gov/api/psd/commodity/2222000/…</code>。
+      面积、单产、产量、压榨、进出口、期末库存全部为实物量；同一营销年度内会随 WASDE 多次修订，
+      本看板取<b>最新月份</b>的一版。「全球」直接取 PSD 的世界合计（非各国加总）。</li>
+    <li><b>巴西大豆序列</b>：CONAB（巴西国家供应公司）官方「Séries Históricas - Grãos - Soja」XLS，
+      含 1976/77 起全部作物年度的面积 / 单产 / 产量，取其中「BRASIL」全国合计行。
+      USDA 曲线取自 PSD，两条曲线口径不同（CONAB 面积口径为播种面积）。</li>
+    <li><b>美国月度压榨</b>：USDA NASS《Fats and Oils: Oilseed Crushings, Production,
+      Consumption and Stocks》月报，经 ESMIS 归档文本解析，取主体表「本月」列。
+      压榨量与粕产量为短吨、豆油为千磅，看板已换算。</li>
+    <li><b>气候与水位</b>：ONI 取自 NOAA PSL <code>psl.noaa.gov/data/correlation/oni.data</code>，
+      为 Niño 3.4 区海温距平的 3 个月滑动平均；内河水位取自 USGS NWIS 日值，
+      站点 07010000（密西西比河圣路易斯站），参数 00065 河面高程。</li>
+    <li><b>本看板不含价格类数据</b>：面积、单产、产量、进度、优良率、进出口量、压榨量与库存、
+      气温与水位均为实物量/物理量口径；期货持仓、现货价、期货价差、汇率、运费与压榨利润等
+      金额与价格类指标一律未纳入。</li>
+    <li>本看板所有数据均来自各国官方公开数据源；页面为基于这些公开数据的独立整理，非官方发布物。</li>
   </ul>
 </div>
 
 <footer>
-  数据来源：USDA Foreign Agricultural Service（ESR / PSD）、USDA OCE·WAOB《Agriculture in Drought》、USDA AMS《Soybean Crush Report》、USDA NASS《Crop Production》。
-  本页为基于 USDA 公开数据的独立整理，非 USDA 官方发布物；图中数值以 USDA 原始口径为准。
-  <br>页面生成时间：__GENERATED__（数据每周四 USDA 出口销售报告发布后自动更新）
+  数据来源：USDA Foreign Agricultural Service（ESR / PSD）、USDA NASS（Crop Progress / Fats and Oils）、
+  USDA OCE·WAOB《Agriculture in Drought》、巴西 CONAB、美国 NOAA PSL、美国 USGS。
+  本页为基于各方公开数据的独立整理，非上述机构的官方发布物；图中数值以原始口径为准。
+  <br>页面生成时间：__GENERATED__（每周四 USDA 出口销售报告发布后自动更新）
 </footer>
 </div>
 
@@ -306,6 +382,13 @@ function drawChart(id, cfg){
       const v = [1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335][m - 1];
       if (v >= xMin && v <= xMax) xt.push({ v: v, t: m + '月' });
     }
+  } else if (cfg.xm === 'year'){
+    xt = [];
+    const span = xMax - xMin;
+    const step = span > 24 ? 5 : (span > 12 ? 2 : 1);
+    for (let v = Math.ceil(xMin / step) * step; v <= xMax + 1e-9; v += step){
+      if (v >= xMin - 1e-9) xt.push({ v: v, t: String(Math.round(v)) });
+    }
   } else {
     xt = [];
     [1, 7, 13, 19, 25, 31, 37, 43, 49, 53].forEach(function(w){
@@ -326,14 +409,14 @@ function drawChart(id, cfg){
   });
   s += '<text class="axis-t" x="' + (PL + iw/2) + '" y="' + (H-6) + '" text-anchor="middle">' + cfg.x + '</text>';
 
-  const dim = cfg.s.length > 1;
+  const anyHl = cfg.s.some(function(s){ return s.hl; });
   cfg.s.forEach(function(ser){
     if (!ser.p.length) return;
     let d = '';
     ser.p.forEach(function(p, i){
       d += (i ? 'L' : 'M') + X(p[0]).toFixed(1) + ' ' + Y(p[1]).toFixed(1) + ' ';
     });
-    const op = ser.hl ? '1' : (dim ? '0.5' : '1');
+    const op = anyHl ? (ser.hl ? '1' : '0.5') : '1';
     const wdt = ser.hl ? 3.4 : 1.7;
     s += '<path class="pth" d="' + d.trim() + '" stroke="' + ser.color + '" stroke-width="' + wdt + '" opacity="' + op + '"/>';
     if (ser.hl){
@@ -386,11 +469,11 @@ function redraw(cid){
   const act = ACTIVE[cid] || {};
   const ser = c.s.filter(function(s){ return act[s.label] !== false; });
   if (!ser.length){
-    host.innerHTML = '<div class="chart-empty">已隐藏全部年份 —— 点击上方图例恢复</div>';
+    host.innerHTML = '<div class="chart-empty">已隐藏全部曲线 —— 点击上方图例恢复</div>';
     return;
   }
-  drawChart(cid, { s: ser, x: c.x, xmin: c.xmin, xmax: c.xmax,
-                   y0: c.y0, xm: c.xm });
+  drawChart(cid, { s: ser, x: c.x, xmin: (c._xmin !== undefined ? c._xmin : c.xmin),
+                   xmax: c.xmax, y0: c.y0, xm: c.xm });
 }
 
 function toggleYear(cid, label){
@@ -415,14 +498,26 @@ function bindLegend(cid){
 
 function applyPreset(kind){
   DATA.charts.forEach(function(c){
-    const n = c.s.length;
-    c.s.forEach(function(s, i){
-      let on = true;
-      if (kind === 'recent5') on = i >= Math.max(0, n - 5);
-      else if (kind === 'recent3') on = i >= Math.max(0, n - 3);
-      else if (kind === 'last') on = i === n - 1;
-      ACTIVE[c.id][s.label] = on;
-    });
+    if (c.xm === 'year' && c.yr){
+      // 年度类图表：筛选「年份区间」，曲线本身全部保留（图例仍可逐条开关）
+      const span = c.yr[1] - c.yr[0] + 1;
+      let keep = span;
+      if (kind === 'recent5') keep = Math.min(span, 5);
+      else if (kind === 'recent3') keep = Math.min(span, 3);
+      else if (kind === 'last') keep = 1;
+      c._xmin = (kind === 'all') ? c.xmin
+                                 : Math.max(c.xmin, Math.floor(c.yr[1]) - keep + 1);
+      c.s.forEach(function(s){ ACTIVE[c.id][s.label] = true; });
+    } else {
+      const n = c.s.length;
+      c.s.forEach(function(s, i){
+        let on = true;
+        if (kind === 'recent5') on = i >= Math.max(0, n - 5);
+        else if (kind === 'recent3') on = i >= Math.max(0, n - 3);
+        else if (kind === 'last') on = i === n - 1;
+        ACTIVE[c.id][s.label] = on;
+      });
+    }
     renderLegend('lg-' + c.id, c.s, c.id);
     redraw(c.id);
   });
