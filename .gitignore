@@ -1,0 +1,24 @@
+# WorkBuddy 工作区元数据（不上传）
+.workbuddy/
+
+# 接口原始响应缓存（体积较大，可由脚本重新拉取）
+data/raw/
+
+# 构建产物副本（根目录 index.html 才是发布页）
+outputs/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node
+node_modules/
+package-lock.json
+
+# 杂项
+.DS_Store
+Thumbs.db
+*.log
+.tmp_*

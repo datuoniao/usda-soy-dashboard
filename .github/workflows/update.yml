@@ -1,0 +1,72 @@
+name: 更新 USDA 数据看板
+
+on:
+  schedule:
+    # 每周五 12:00 UTC（= 北京时间周五 20:00），即 USDA 周四出口销售报告发布之后
+    - cron: '0 12 * * 5'
+  workflow_dispatch:      # 支持手动触发
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-dashboard
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+
+      - name: 取数 —— USDA FAS 出口销售
+        run: python scripts/fetch_esr.py
+        env:
+          FAS_API_KEY: ${{ secrets.FAS_API_KEY }}
+
+      - name: 取数 —— USDA PSD 年度出口预测
+        run: python scripts/fetch_psd.py
+        env:
+          FAS_API_KEY: ${{ secrets.FAS_API_KEY }}
+
+      - name: 取数 —— 美豆干旱率
+        continue-on-error: true      # 失败会自动回退到自建口径，不阻塞更新
+        run: python scripts/fetch_drought.py
+
+      - name: 取数 —— 伊利诺伊压榨周报
+        continue-on-error: true      # 部分网络环境下 AMS 不可达，不阻塞更新
+        run: python scripts/fetch_crush.py
+
+      - name: 构建数据与页面
+        run: |
+          python scripts/build_extra.py
+          python scripts/build_data.py
+          python scripts/build_dashboard.py
+
+      - name: 冒烟测试
+        run: node scripts/smoke_test.js
+
+      - name: 提交更新
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A index.html data
+          if git diff --cached --quiet; then
+            echo "数据无变化，跳过提交"
+          else
+            git commit -m "chore: 自动更新数据看板 ($(date -u '+%Y-%m-%d'))"
+            git push
+            echo "已提交更新"
+          fi

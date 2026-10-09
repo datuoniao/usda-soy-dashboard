@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>USDA 美豆数据看板</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --panel:#ffffff; --line:#e3e6ea; --ink:#1f2328; --ink2:#5b6470;
+    --ink3:#8a939e; --accent:#c0392b; --blue:#3f74cf;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;
+    font-size:14px;line-height:1.65;-webkit-font-smoothing:antialiased}
+  a{color:var(--blue);text-decoration:none}
+  .wrap{max-width:1360px;margin:0 auto;padding:0 22px 60px}
+
+  /* hero */
+  .hero{background:linear-gradient(135deg,#1f2328 0%,#33393f 55%,#4a3b34 100%);color:#fff;
+    padding:34px 0 30px;margin-bottom:22px}
+  .hero .wrap{padding-bottom:0}
+  .hero h1{margin:0 0 8px;font-size:25px;font-weight:650;letter-spacing:.2px}
+  .hero .sub{color:#c8ccd2;font-size:13.5px;margin-bottom:18px}
+  .hero .sub b{color:#fff;font-weight:600}
+  .chiprow{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+  .chip{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.16);
+    border-radius:9px;padding:9px 14px;min-width:126px}
+  .chip .cv{font-size:19px;font-weight:680;letter-spacing:.3px}
+  .chip .cv small{font-size:11.5px;font-weight:400;color:#c8ccd2;margin-left:3px}
+  .chip .cl{font-size:11.5px;color:#dfe3e8;margin-top:1px}
+  .chip .cd{font-size:10.5px;color:#a9b0b8;margin-top:2px}
+
+  /* nav */
+  nav.toc{position:sticky;top:0;z-index:20;background:rgba(245,246,248,.96);
+    backdrop-filter:blur(6px);border-bottom:1px solid var(--line);margin-bottom:20px}
+  nav.toc .wrap{display:flex;gap:6px;flex-wrap:wrap;padding-top:9px;padding-bottom:9px}
+  nav.toc a{font-size:12.5px;color:var(--ink2);padding:5px 11px;border-radius:7px}
+  nav.toc a:hover{background:#e8ebef;color:var(--ink)}
+
+  h2.sec{font-size:16px;margin:30px 0 4px;padding-left:11px;border-left:4px solid var(--accent);
+    line-height:1.35}
+  h2.sec span{font-weight:400;color:var(--ink3);font-size:12.5px;margin-left:8px}
+  p.lead{color:var(--ink2);font-size:13px;margin:8px 0 16px;padding-left:15px}
+
+  .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+  @media (max-width:900px){.grid{grid-template-columns:1fr}}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 16px 8px;
+    box-shadow:0 1px 2px rgba(16,24,40,.04)}
+  .card-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:2px}
+  .card-h h3{margin:0;font-size:13.5px;font-weight:600}
+  .card-h .unit{font-size:11.5px;color:var(--ink3);white-space:nowrap}
+  .note{font-size:11px;color:var(--ink3);margin:2px 0 4px}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 13px;margin:7px 0 2px}
+  .legend i{display:inline-block;width:15px;height:2.6px;border-radius:2px;
+    vertical-align:middle;margin-right:5px}
+  .legend span{font-size:11px;color:var(--ink2)}
+  svg{display:block;width:100%;height:auto}
+  .axis{stroke:#e6e9ed;stroke-width:1}
+  .axis-t{fill:#98a1ab;font-size:10.5px}
+  .gl{stroke:#eef1f4;stroke-width:1}
+  .pth{fill:none;stroke-width:1.9;stroke-linejoin:round;stroke-linecap:round}
+  .lbl{font-size:11px;font-weight:650}
+
+  table{width:100%;border-collapse:collapse;background:var(--panel);
+    border:1px solid var(--line);border-radius:11px;overflow:hidden;font-size:12.5px}
+  th,td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:left}
+  th{background:#fafbfc;font-weight:600;color:var(--ink2);font-size:12px}
+  tr:last-child td{border-bottom:none}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .ok{color:#1d8a4c;font-weight:650}
+  .warn{color:#b7791f}
+  .bad{color:#c0392b}
+
+  .box{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--blue);
+    border-radius:9px;padding:13px 16px;font-size:12.5px;color:var(--ink2);margin:14px 0}
+  .box.alert{border-left-color:#d98324;background:#fffbf5}
+  .box h4{margin:0 0 7px;font-size:13px;color:var(--ink)}
+  .box ul{margin:6px 0 0;padding-left:19px}
+  .box li{margin:3px 0}
+  code{background:#f0f2f5;border-radius:4px;padding:1px 5px;font-size:11.5px;
+    font-family:ui-monospace,Menlo,Consolas,monospace}
+  footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);
+    color:var(--ink3);font-size:11.5px}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <h1>USDA 美豆数据看板</h1>
+    <div class="sub">
+      出口销售 · 对华口径 · 干旱率 · 压榨利润 ｜ 数据全部取自 USDA 官方源 ·
+      出口销售截至 <b>__ASOF_EXPORT__</b> 当周 · 干旱率截至 <b>__ASOF_DROUGHT__</b>
+    </div>
+    <div class="chiprow" id="kpis"></div>
+  </div>
+</header>
+
+<nav class="toc"><div class="wrap">
+  <a href="#s0">数据来源</a>
+  <a href="#s1">① 美豆出口销售</a>
+  <a href="#s2">② 对华与除中国外</a>
+  <a href="#s3">③ 美豆粕出口</a>
+  <a href="#s4">④ 美豆干旱率</a>
+  <a href="#s5">⑤ 伊利诺伊压榨</a>
+  <a href="#s6">口径与校验</a>
+</div></nav>
+
+<div class="wrap">
+
+<h2 class="sec" id="s0">数据来源<span>全部为 USDA 一手数据，直接调用官方接口获取</span></h2>
+<p class="lead">
+  本看板覆盖美豆基本面最常跟踪的五组周度指标：出口销售、对华出口、豆粕出口、产区干旱率、伊利诺伊压榨利润与油粕价格。
+  所有数据均由脚本直接调用 USDA 官方接口获取，页面为纯静态文件，可离线打开。
+</p>
+
+<h2 class="sec" id="s1">① 美豆本年度出口销售<span>USDA FAS · Export Sales Reporting（周度）</span></h2>
+<p class="lead">营销年度按 9 月 1 日起算；横轴为年度内周序号。红色粗线为正在进行的 2026/27 年度。</p>
+<div class="grid">
+  <div class="card"><div class="card-h"><h3>当周出口净销售</h3><span class="unit">万吨</span></div><div class="legend" id="lg-c1"></div><div id="c1"></div></div>
+  <div class="card"><div class="card-h"><h3>截至当周出口总销售（累计）</h3><span class="unit">万吨</span></div><div class="legend" id="lg-c2"></div><div id="c2"></div></div>
+  <div class="card"><div class="card-h"><h3>当周出口装船</h3><span class="unit">万吨</span></div><div class="legend" id="lg-c3"></div><div id="c3"></div></div>
+  <div class="card"><div class="card-h"><h3>截至当周出口销售进度</h3><span class="unit">%</span></div><div class="legend" id="lg-c4"></div><div id="c4"></div><div class="note" id="nt-c4"></div></div>
+</div>
+
+<h2 class="sec" id="s2">② 美豆对华出口 &amp; 除中国外出口<span>USDA FAS ESR · 按目的国拆分</span></h2>
+<p class="lead">中国在 FAS 国家编码中为 <code>5700</code>；除中国外口径 = 全部国家合计 − 中国。</p>
+<div class="grid">
+  <div class="card"><div class="card-h"><h3>对华当周出口净销售</h3><span class="unit">万吨</span></div><div class="legend" id="lg-c5"></div><div id="c5"></div></div>
+  <div class="card"><div class="card-h"><h3>对华截至当周出口总销售</h3><span class="unit">万吨</span></div><div class="legend" id="lg-c6"></div><div id="c6"></div></div>
+  <div class="card"><div class="card-h"><h3>除中国外当周出口净销售</h3><span class="unit">万吨</span></div><div class="legend" id="lg-c7"></div><div id="c7"></div></div>
+  <div class="card"><div class="card-h"><h3>除中国外截至当周出口总销售</h3><span class="unit">万吨</span></div><div class="legend" id="lg-c8"></div><div id="c8"></div></div>
+</div>
+
+<h2 class="sec" id="s3">③ 美豆粕本年度出口销售<span>USDA FAS ESR · Soybean cake &amp; meal</span></h2>
+<p class="lead">豆粕营销年度按 10 月 1 日起算，故 2026/27 年度刚开始（当前仅 1 周数据）。</p>
+<div class="grid">
+  <div class="card"><div class="card-h"><h3>当周出口净销售</h3><span class="unit">万吨</span></div><div class="legend" id="lg-c9"></div><div id="c9"></div></div>
+  <div class="card"><div class="card-h"><h3>累计出口总销售</h3><span class="unit">万吨</span></div><div class="legend" id="lg-c10"></div><div id="c10"></div></div>
+  <div class="card"><div class="card-h"><h3>当周出口装船</h3><span class="unit">万吨</span></div><div class="legend" id="lg-c11"></div><div id="c11"></div></div>
+  <div class="card"><div class="card-h"><h3>累计出口装船</h3><span class="unit">万吨</span></div><div class="legend" id="lg-c12"></div><div id="c12"></div></div>
+</div>
+
+<h2 class="sec" id="s4">④ 美豆干旱率<span>USDA OCE / WAOB《Agriculture in Drought》· 周度</span></h2>
+<p class="lead">
+  口径为「处于该等级及以上干旱的大豆面积占比」，权重用 NASS 农业普查的大豆面积。
+  图中 2012 为大减产年、2016 为大丰产年，作为干旱周期的两个极端对照年份。
+</p>
+<div class="grid">
+  <div class="card"><div class="card-h"><h3>美豆干旱率（D1 及以上）</h3><span class="unit">%</span></div><div class="legend" id="lg-c13"></div><div id="c13"></div></div>
+  <div class="card"><div class="card-h"><h3>美豆重度干旱率（D3 及以上）</h3><span class="unit">%</span></div><div class="legend" id="lg-c14"></div><div id="c14"></div></div>
+</div>
+
+<h2 class="sec" id="s5">⑤ 伊利诺伊压榨利润与油粕价格<span>USDA AMS《Soybean Crush Report》· 周度</span></h2>
+<p class="lead">毛利 = 每蒲式耳大豆产出的油粕总值 − 1 号黄大豆卡车价；产出率按报表固定值（油 11.80–11.88 lb、粕 46.50 lb）。</p>
+<div class="box alert">
+  <h4>⚠️ 本模块数据覆盖不完整（务必留意）</h4>
+  该报表 2022-08 起并入 AMS《National Weekly Grain Co-Products Report》（AMS_3618），并迁移至 USDA My Market News / MARS 平台。
+  该平台对本机所在网络整体返回 <code>Access Denied</code>（Akamai 按 IP 拦截，真实浏览器同样被拒）；
+  ESMIS 镜像虽保留 2022-08～2025-08 的发布记录，但对应 PDF 文件已 <code>404</code>。
+  因此本模块目前只能呈现 <b>2020-01 ~ 2022-07</b> 的周度数据，<b>2022-08 之后缺失</b>。
+  若需要补齐，需要一个可访问 AMS MARS 的网络出口（或在美地区环境重跑 <code>scripts/</code> 下的取数脚本）。
+</div>
+<div class="grid">
+  <div class="card"><div class="card-h"><h3>油厂压榨毛利</h3><span class="unit">美元/蒲式耳</span></div><div class="legend" id="lg-c15"></div><div id="c15"></div><div class="note" id="nt-c15"></div></div>
+  <div class="card"><div class="card-h"><h3>大豆毛油车板价</h3><span class="unit">美分/磅</span></div><div class="legend" id="lg-c16"></div><div id="c16"></div></div>
+  <div class="card"><div class="card-h"><h3>48% 豆粕批发价</h3><span class="unit">美元/短吨</span></div><div class="legend" id="lg-c17"></div><div id="c17"></div></div>
+  <div class="card"><div class="card-h"><h3>1 号黄大豆卡车价</h3><span class="unit">美元/蒲式耳</span></div><div class="legend" id="lg-c18"></div><div id="c18"></div></div>
+</div>
+
+<h2 class="sec" id="s6">最新一期数据快照<span>随数据自动更新</span></h2>
+<p class="lead">下表列出美豆最新一期出口销售的关键指标，并与上一周、去年同周对比。</p>
+<table id="chk"></table>
+
+<div class="box">
+  <h4>数据口径说明</h4>
+  <ul>
+    <li><b>出口销售</b>：USDA FAS Export Sales Reporting，接口 <code>api.fas.usda.gov/api/esr/exports/...</code>。
+      「净销售」取 <code>currentMYNetSales</code> 按国家汇总；「总销售（累计）」取 <code>currentMYTotalCommitment</code> 汇总；
+      「装船」取 <code>weeklyExports</code>；单位公吨，看板换算为万吨。</li>
+    <li><b>销售进度</b>：分母为 USDA PSD 对该营销年度的全年出口预测（属性 Exports）。
+      采用的是<b>最新一期</b>预测值，因此历史年度的终值进度未必正好等于 100%。</li>
+    <li><b>干旱率</b>：USDA OCE/WAOB《Agriculture in Drought》官方大豆口径，直接取官方周度序列（2000 年至今，共 1405 周）。
+      D1/D2/D3/D4 均为「该等级及以上」的占比。看板同时内置了一份「USDM 州级面积 × NASS 州产量权重」的自建序列用于交叉校验，
+      两者走势一致，但自建口径在 D1 档位上偏高（2026-10-06 自建 31.5% vs 官方 25%），故<b>最终以官方口径为准</b>。</li>
+    <li><b>压榨数据</b>：USDA AMS《Soybean Crush Report》(GX_GR211)，经 ESMIS 归档文本解析。覆盖 2020-01～2022-07。</li>
+    <li>本看板所有数据均来自 USDA 公开数据源；「重度干旱率」按原文 5% 的口径对应 D3 及以上，已由官方序列验证一致。</li>
+  </ul>
+</div>
+
+<footer>
+  数据来源：USDA Foreign Agricultural Service（ESR / PSD）、USDA OCE·WAOB《Agriculture in Drought》、USDA AMS《Soybean Crush Report》、USDA NASS《Crop Production》。
+  本页为基于 USDA 公开数据的独立整理，非 USDA 官方发布物；图中数值以 USDA 原始口径为准。
+  <br>页面生成时间：__GENERATED__（数据每周四 USDA 出口销售报告发布后自动更新）
+</footer>
+</div>
+
+<script>
+const DATA = /*__DATA__*/;
+
+const W = 1000, H = 340, PL = 56, PR = 18, PT = 20, PB = 40;
+
+function el(id){ return document.getElementById(id); }
+
+function fmtNum(v){
+  if (v === null || v === undefined) return '';
+  const a = Math.abs(v);
+  if (a >= 1000) return v.toFixed(0);
+  if (a >= 100) return v.toFixed(1);
+  if (a >= 10) return v.toFixed(1);
+  if (a >= 1) return v.toFixed(2);
+  return v.toFixed(3);
+}
+
+function niceTicks(lo, hi, n){
+  const span = hi - lo;
+  if (!(span > 0)) return [lo];
+  const raw = span / n;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const norm = raw / mag;
+  let step = mag;
+  if (norm > 5) step = 10 * mag;
+  else if (norm > 2) step = 5 * mag;
+  else if (norm > 1) step = 2 * mag;
+  const out = [];
+  let v = Math.ceil(lo / step) * step;
+  for (; v <= hi + 1e-9; v += step) out.push(Math.round(v * 1e6) / 1e6);
+  return out;
+}
+
+function drawChart(id, cfg){
+  const host = el(id);
+  if (!host) return;
+  const iw = W - PL - PR, ih = H - PT - PB;
+
+  let vals = [];
+  cfg.s.forEach(function(s){
+    s.p.forEach(function(p){
+      if (p[1] !== null && isFinite(p[1])) vals.push(p[1]);
+    });
+  });
+  if (!vals.length){ host.innerHTML = '<div class="note">无数据</div>'; return; }
+
+  let yMin, yMax;
+  yMin = Math.min.apply(null, vals);
+  yMax = Math.max.apply(null, vals);
+  if (cfg.y0 && yMin > 0) yMin = 0;
+  if (yMin === yMax){ yMax += 1; yMin -= 1; }
+  const pad = (yMax - yMin) * 0.10;
+  yMax += pad;
+  if (!(cfg.y0 && yMin === 0)) yMin -= pad;
+
+  const xMin = cfg.xmin, xMax = cfg.xmax;
+  function X(v){ return PL + iw * (v - xMin) / (xMax - xMin); }
+  function Y(v){ return PT + ih * (1 - (v - yMin) / (yMax - yMin)); }
+
+  const yt = niceTicks(yMin, yMax, 5);
+  let xt;
+  if (xMax > 100){
+    xt = [];
+    for (let m = 1; m <= 12; m++){
+      xt.push({ v: [0,31,59,90,120,151,181,212,243,273,304,334][m-1] + 1, t: m + '月' });
+    }
+  } else {
+    xt = [];
+    [1,7,13,19,25,31,37,43,49,53].forEach(function(w){ if (w <= xMax) xt.push({ v: w, t: String(w) }); });
+  }
+
+  let s = '';
+  yt.forEach(function(v){
+    const y = Y(v);
+    s += '<line class="gl" x1="' + PL + '" y1="' + y + '" x2="' + (W-PR) + '" y2="' + y + '"/>';
+    s += '<text class="axis-t" x="' + (PL - 8) + '" y="' + (y + 3.5) + '" text-anchor="end">' + fmtNum(v) + '</text>';
+  });
+  s += '<line class="axis" x1="' + PL + '" y1="' + (PT+ih) + '" x2="' + (W-PR) + '" y2="' + (PT+ih) + '"/>';
+  s += '<line class="axis" x1="' + PL + '" y1="' + PT + '" x2="' + PL + '" y2="' + (PT+ih) + '"/>';
+  xt.forEach(function(t){
+    s += '<text class="axis-t" x="' + X(t.v) + '" y="' + (PT+ih+16) + '" text-anchor="middle">' + t.t + '</text>';
+  });
+  s += '<text class="axis-t" x="' + (PL + iw/2) + '" y="' + (H-6) + '" text-anchor="middle">' + cfg.x + '</text>';
+
+  const dim = cfg.s.length > 1;
+  cfg.s.forEach(function(ser){
+    if (!ser.p.length) return;
+    let d = '';
+    ser.p.forEach(function(p, i){
+      d += (i ? 'L' : 'M') + X(p[0]).toFixed(1) + ' ' + Y(p[1]).toFixed(1) + ' ';
+    });
+    const op = ser.hl ? '1' : (dim ? '0.5' : '1');
+    const wdt = ser.hl ? 3.4 : 1.7;
+    s += '<path class="pth" d="' + d.trim() + '" stroke="' + ser.color + '" stroke-width="' + wdt + '" opacity="' + op + '"/>';
+    if (ser.hl){
+      const lp = ser.p[ser.p.length - 1];
+      const px = X(lp[0]), py = Y(lp[1]);
+      s += '<circle cx="' + px + '" cy="' + py + '" r="4.4" fill="' + ser.color + '" stroke="#fff" stroke-width="1.6"/>';
+      const txt = fmtNum(lp[1]);
+      const anchor = px > W - 150 ? 'end' : 'start';
+      const dx = anchor === 'end' ? -9 : 9;
+      s += '<text class="lbl" x="' + (px + dx) + '" y="' + (py - 7) + '" text-anchor="' + anchor +
+           '" fill="' + ser.color + '">' + txt + '</text>';
+    }
+  });
+  host.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet">' + s + '</svg>';
+}
+
+function renderLegend(id, series){
+  const host = el(id);
+  if (!host) return;
+  host.innerHTML = series.map(function(s){
+    return '<span><i style="background:' + s.color + '"></i>' + s.label + '</span>';
+  }).join('');
+}
+
+function renderKpis(){
+  const host = el('kpis');
+  if (!host) return;
+  host.innerHTML = DATA.kpis.map(function(k){
+    return '<div class="chip"><div class="cv">' + k.v + '<small>' + k.u + '</small></div>' +
+           '<div class="cl">' + k.l + '</div><div class="cd">' + k.d + '</div></div>';
+  }).join('');
+}
+
+function renderCheck(){
+  const host = el('chk');
+  if (!host || !DATA.snapshot) return;
+  function cell(v, unit, isPct){
+    if (v === null || v === undefined) return '—';
+    const s = unit === '%' ? v.toFixed(2) : (Math.abs(v) >= 1000 ? v.toFixed(0) : v.toFixed(2));
+    return s;
+  }
+  function delta(v){
+    if (v === null || v === undefined) return '<span class="axis-t">—</span>';
+    const cls = v > 0 ? 'ok' : (v < 0 ? 'bad' : '');
+    const sign = v > 0 ? '+' : '';
+    return '<span class="' + cls + '">' + sign + v.toFixed(1) + '%</span>';
+  }
+  host.innerHTML =
+    '<thead><tr><th>指标</th><th style="text-align:right">本期</th><th style="text-align:right">上期</th>' +
+    '<th style="text-align:right">去年同周</th><th style="text-align:right">环比</th>' +
+    '<th style="text-align:right">同比</th><th>单位</th></tr></thead><tbody>' +
+    DATA.snapshot.map(function(r){
+      return '<tr><td>' + r.n + '</td>' +
+             '<td class="num"><b>' + cell(r.c, r.u) + '</b></td>' +
+             '<td class="num">' + cell(r.p, r.u) + '</td>' +
+             '<td class="num">' + cell(r.l, r.u) + '</td>' +
+             '<td class="num">' + delta(r.wow) + '</td>' +
+             '<td class="num">' + delta(r.yoy) + '</td>' +
+             '<td>' + r.u + '</td></tr>';
+    }).join('') + '</tbody>';
+}
+
+function boot(){
+  renderKpis();
+  DATA.charts.forEach(function(c){
+    renderLegend('lg-' + c.id, c.s);
+    drawChart(c.id, c);
+    if (c.note){
+      const n = el('nt-' + c.id);
+      if (n) n.textContent = c.note;
+    }
+  });
+  renderCheck();
+}
+
+window.OUT = { drawChart: drawChart, DATA: DATA, boot: boot };
+if (document.getElementById('kpis')) boot();
+</script>
+</body>
+</html>
