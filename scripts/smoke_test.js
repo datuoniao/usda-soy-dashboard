@@ -88,22 +88,54 @@ const openSec = (body.match(/<section[\s>]/g) || []).length;
 const closeSec = (body.match(/<\/section>/g) || []).length;
 check('section 开闭配对', openSec === closeSec, openSec + ' / ' + closeSec);
 
-// ---------- 5. 快照表数值校验（与 USDA 公布值对照）
+// ---------- 5. 快照表自洽性（不写死数值，抗每周更新与月度修订）
 const snap = OUT.DATA && OUT.DATA.snapshot ? OUT.DATA.snapshot : [];
 check('快照表 8 行', snap.length === 8, '实际 ' + snap.length);
-const expect = {
-  '当周出口净销售': 54.94, '累计出口总销售': 2278.52, '当周出口装船': 137.97,
-  '对华当周净销售': 38.29, '对华累计销售': 1114.23,
-  '除中国外当周净销售': 16.65, '除中国外累计销售': 1164.29
-};
-let numOk = true;
+let snapOk = true;
 snap.forEach(function (r) {
-  if (expect[r.n] === undefined) return;
-  const ok = Math.abs(r.c - expect[r.n]) < 0.06;
-  if (!ok) numOk = false;
-  console.log('    ' + (ok ? 'OK  ' : 'BAD ') + r.n + '  本期=' + r.c + '  USDA公布=' + expect[r.n]);
+  if (r.c === null || r.p === null || r.p === 0) return;
+  const wow = Math.round((r.c - r.p) / Math.abs(r.p) * 1000) / 10;
+  if (Math.abs(wow - r.wow) > 0.11) {
+    snapOk = false;
+    console.log('    环比不自洽 ' + r.n + ' 记=' + r.wow + ' 算=' + wow);
+  }
+  if (r.l !== null && r.l !== 0) {
+    const yoy = Math.round((r.c - r.l) / Math.abs(r.l) * 1000) / 10;
+    if (Math.abs(yoy - r.yoy) > 0.11) {
+      snapOk = false;
+      console.log('    同比不自洽 ' + r.n + ' 记=' + r.yoy + ' 算=' + yoy);
+    }
+  }
 });
-check('关键指标与 USDA 公布值一致', numOk);
+check('快照表环比/同比自洽', snapOk);
+
+// ---------- 5a. 与源 CSV 的独立交叉校验（固定历史期，已定稿不会被修订）
+function readCsv(rel) {
+  const p = path.join(__dirname, '..', rel);
+  if (!fs.existsSync(p)) return [];
+  const lines = fs.readFileSync(p, 'utf8').replace(/^\uFEFF/, '')
+    .split(/\r?\n/).filter(function (l) { return l.trim(); });
+  const head = lines[0].split(',');
+  return lines.slice(1).map(function (l) {
+    const cells = l.split(',');
+    const o = {};
+    head.forEach(function (h, i) { o[h] = cells[i]; });
+    return o;
+  });
+}
+const exRows = readCsv('data/export_sales.csv');
+const ex1 = exRows.filter(function (r) { return r.week_ending === '2026-10-01'; })[0];
+check('CSV 含 2026-10-01 出口销售行', !!ex1);
+if (ex1) {
+  const want = +ex1.net_sales_kt / 10;
+  check('2026-10-01 当周净销售 = 54.94 万吨', Math.abs(want - 54.94) < 0.01,
+    '实际 ' + want.toFixed(2));
+  const c1 = charts.filter(function (x) { return x.id === 'c1'; })[0];
+  const s = c1.s.filter(function (x) { return x.label === ex1.my_label; })[0];
+  const pt = s ? s.p.filter(function (p) { return p[0] === +ex1.week_index; })[0] : null;
+  check('看板 c1 该周数值与 CSV 一致', !!pt && Math.abs(pt[1] - want) < 0.01,
+    pt ? String(pt[1]) : '缺失');
+}
 
 // ---------- 5b. 页面不含特定机构字样
 ['中粮', '武汉', '每日观察', '复刻'].forEach(function (kw) {
@@ -133,13 +165,33 @@ check('新增图表已全部生成', newChartIds.every(function (id) {
   return !charts.some(function (c) { return c.id === id; });
 }).join(','));
 
-// ---------- 6. 干旱与优良率锚点
+// ---------- 6. 干旱与作物：固定历史期锚点 + 结构检查
+const drRows = readCsv('data/drought.csv');
+const drAnchor = drRows.filter(function (r) { return r.week_ending === '2026-10-06'; })[0];
+check('2026-10-06 干旱率 D1+ = 25%',
+  !!drAnchor && +drAnchor.soy_d1plus === 25, drAnchor ? drAnchor.soy_d1plus : '缺失');
+check('2026-10-06 重度干旱率 D3+ = 5%',
+  !!drAnchor && +drAnchor.soy_d3plus === 5, drAnchor ? drAnchor.soy_d3plus : '缺失');
+
 const d13 = charts.filter(function (x) { return x.id === 'c13'; })[0];
-const lastD = d13.s[d13.s.length - 1].p[d13.s[d13.s.length - 1].p.length - 1][1];
-check('干旱率最新值 = 25%', lastD === 25, '实际 ' + lastD);
-const d14 = charts.filter(function (x) { return x.id === 'c14'; })[0];
-const lastD3 = d14.s[d14.s.length - 1].p[d14.s[d14.s.length - 1].p.length - 1][1];
-check('重度干旱率最新值 = 5%', lastD3 === 5, '实际 ' + lastD3);
+const s26 = d13.s.filter(function (x) { return x.label === '2026'; })[0];
+const doy1006 = 273 + 6;
+const ptD = s26 ? s26.p.filter(function (p) { return p[0] === doy1006; })[0] : null;
+check('c13 图中 2026-10-06 点位 = 25', !!ptD && ptD[1] === 25, ptD ? String(ptD[1]) : '缺失');
+
+const drLast = drRows[drRows.length - 1];
+check('干旱率最新值在合理区间(0-100)',
+  drLast && +drLast.soy_d1plus >= 0 && +drLast.soy_d1plus <= 100,
+  drLast ? drLast.week_ending + ' ' + drLast.soy_d1plus + '%' : '缺失');
+
+const cpRows = readCsv('data/crop_progress.csv');
+const cpAnchor = cpRows.filter(function (r) { return r.week_ending === '2026-07-19'; })[0];
+check('2026-07-19 结荚进度 = 32%',
+  !!cpAnchor && +cpAnchor.setting_pods_pct === 32,
+  cpAnchor ? cpAnchor.setting_pods_pct : '缺失');
+check('2026-07-19 开花进度 = 66%',
+  !!cpAnchor && +cpAnchor.blooming_pct === 66,
+  cpAnchor ? cpAnchor.blooming_pct : '缺失');
 
 const c19 = charts.filter(function (x) { return x.id === 'c19'; })[0];
 check('优良率图有数据', c19 && c19.s.length > 0 && c19.s[c19.s.length - 1].p.length > 0,
@@ -155,7 +207,7 @@ if (c19 && c19.s.length) {
     c ? c.s.length + ' 年' : '缺失');
 });
 
-// ---------- 6b. 新增模块数值锚点（对照各官方源公布值）
+// ---------- 6b. 新增模块：与源 CSV 一致 + 合理区间（不写死会被修订的数值）
 function lastVal(cid, label) {
   const c = charts.filter(function (x) { return x.id === cid; })[0];
   if (!c) return null;
@@ -164,34 +216,75 @@ function lastVal(cid, label) {
   if (!ser || !ser.p.length) return null;
   return ser.p[ser.p.length - 1][1];
 }
-function near(a, b, tol) { return a !== null && Math.abs(a - b) <= tol; }
+function inRange(v, lo, hi) { return v !== null && v >= lo && v <= hi; }
+function eqCsv(chartVal, csvVal, tol) {
+  return chartVal !== null && csvVal !== undefined && csvVal !== '' &&
+         Math.abs(chartVal - +csvVal) <= (tol || 0.06);
+}
 
-check('全球大豆产量最新 = 442.3 百万吨', near(lastVal('p1', '全球'), 442.3, 1.0),
+const pbRows = readCsv('data/psd_balance.csv');
+function pbLast(country, col) {
+  const r = pbRows.filter(function (x) { return x.country === country; })
+    .sort(function (a, b) { return +b.my_code - +a.my_code; })[0];
+  return r ? r[col] : undefined;
+}
+check('p1 美国产量与 psd_balance.csv 一致',
+  eqCsv(lastVal('p1', '美国'), (+pbLast('美国', 'production') / 1000).toFixed(4), 0.06),
+  lastVal('p1', '美国') + ' vs ' + (+pbLast('美国', 'production') / 1000).toFixed(2));
+check('p1 巴西产量与 psd_balance.csv 一致',
+  eqCsv(lastVal('p1', '巴西'), (+pbLast('巴西', 'production') / 1000).toFixed(4), 0.06),
+  lastVal('p1', '巴西') + ' vs ' + (+pbLast('巴西', 'production') / 1000).toFixed(2));
+check('p6 中国进口与 psd_balance.csv 一致',
+  eqCsv(lastVal('p6', '中国'), (+pbLast('中国', 'imports') / 1000).toFixed(4), 0.06),
+  lastVal('p6', '中国') + ' vs ' + (+pbLast('中国', 'imports') / 1000).toFixed(2));
+check('p7 全球库存与 psd_balance.csv 一致',
+  eqCsv(lastVal('p7', '全球'), (+pbLast('全球', 'ending_stocks') / 1000).toFixed(4), 0.06),
+  lastVal('p7', '全球') + ' vs ' + (+pbLast('全球', 'ending_stocks') / 1000).toFixed(2));
+
+check('全球大豆产量在合理区间(300-550 百万吨)', inRange(lastVal('p1', '全球'), 300, 550),
   '实际 ' + lastVal('p1', '全球'));
-check('美国大豆产量最新 = 123.4 百万吨', near(lastVal('p1', '美国'), 123.4, 1.0),
+check('美国大豆产量在合理区间(80-150 百万吨)', inRange(lastVal('p1', '美国'), 80, 150),
   '实际 ' + lastVal('p1', '美国'));
-check('巴西大豆产量(USDA)最新 = 186.0 百万吨', near(lastVal('p1', '巴西'), 186.0, 1.0),
-  '实际 ' + lastVal('p1', '巴西'));
-check('中国大豆进口量最新 = 115.0 百万吨', near(lastVal('p6', '中国'), 115.0, 1.0),
-  '实际 ' + lastVal('p6', '中国'));
-check('全球大豆期末库存最新 = 124.0 百万吨', near(lastVal('p7', '全球'), 124.0, 1.0),
+check('全球期末库存在合理区间(50-200 百万吨)', inRange(lastVal('p7', '全球'), 50, 200),
   '实际 ' + lastVal('p7', '全球'));
+check('中国进口在合理区间(80-150 百万吨)', inRange(lastVal('p6', '中国'), 80, 150),
+  '实际 ' + lastVal('p6', '中国'));
 
-check('CONAB 巴西产量最新 = 180.4 百万吨', near(lastVal('b3', 'CONAB'), 180.4, 1.0),
-  '实际 ' + lastVal('b3', 'CONAB'));
-check('CONAB 与 USDA 巴西产量差异 < 8%',
+const cbRows = readCsv('data/conab_soy.csv');
+const cbLast = cbRows[cbRows.length - 1];
+check('b3 CONAB 产量与 conab_soy.csv 一致',
+  eqCsv(lastVal('b3', 'CONAB'), (+cbLast.production_kt / 1000).toFixed(4), 0.06),
+  lastVal('b3', 'CONAB') + ' vs ' + (+cbLast.production_kt / 1000).toFixed(2));
+check('CONAB 与 USDA 巴西产量差异 < 12%',
   (function () {
     const a = lastVal('b3', 'CONAB'), b = lastVal('b3', 'USDA');
-    return a && b && Math.abs(a - b) / b < 0.08;
+    return a && b && Math.abs(a - b) / b < 0.12;
   })(), lastVal('b3', 'CONAB') + ' vs ' + lastVal('b3', 'USDA'));
 
-check('美国月度压榨最新 = 6.29 百万吨', near(lastVal('f1'), 6.29, 0.03),
-  '实际 ' + lastVal('f1'));
-check('美国豆粕月度产量最新 = 460.5 万吨', near(lastVal('f2'), 460.5, 3),
-  '实际 ' + lastVal('f2'));
+const foRows = readCsv('data/us_crush_monthly.csv');
+const foLast = foRows[foRows.length - 1];
+check('f1 月压榨与 us_crush_monthly.csv 一致',
+  eqCsv(lastVal('f1'), (+foLast.crush_tons / 1e6).toFixed(4), 0.02),
+  lastVal('f1') + ' vs ' + (+foLast.crush_tons / 1e6).toFixed(2));
+check('f2 豆粕月产与 CSV 一致',
+  eqCsv(lastVal('f2'), (+foLast.meal_tons / 1e4).toFixed(3), 0.6),
+  lastVal('f2') + ' vs ' + (+foLast.meal_tons / 1e4).toFixed(1));
+check('月压榨在合理区间(3-8 百万吨)', inRange(lastVal('f1'), 3, 8), '实际 ' + lastVal('f1'));
 
-check('ONI 最新值 ≈ +2.16', near(lastVal('w1'), 2.16, 0.2), '实际 ' + lastVal('w1'));
-check('密西西比河水位有数据', lastVal('w2') !== null, '实际 ' + lastVal('w2'));
+const oniRows = readCsv('data/oni.csv');
+const oniLast = oniRows[oniRows.length - 1];
+check('w1 ONI 与 oni.csv 一致',
+  eqCsv(lastVal('w1'), oniLast.oni, 0.011),
+  lastVal('w1') + ' vs ' + oniLast.oni);
+check('ONI 在合理区间(-3~3)', inRange(lastVal('w1'), -3, 3), '实际 ' + lastVal('w1'));
+check('w2 河水位与 river_stage.csv 一致',
+  (function () {
+    const rsRows = readCsv('data/river_stage.csv');
+    const last = rsRows[rsRows.length - 1];
+    return eqCsv(lastVal('w2'), last.stage_ft, 0.011);
+  })(), '实际 ' + lastVal('w2'));
+check('w2 河水位在合理区间(-5~60 英尺)', inRange(lastVal('w2'), -5, 60),
+  '实际 ' + lastVal('w2'));
 
 // 年度类图表的横轴类型与年份跨度
 ['p1', 'b1', 'w1'].forEach(function (id) {

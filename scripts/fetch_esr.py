@@ -53,10 +53,10 @@ def _get(path, params=None):
             time.sleep(3 * (attempt + 1))
 
 
-def fetch(path, params, fname):
-    """带缓存的取数。"""
+def fetch(path, params, fname, refresh=False):
+    """带缓存的取数。refresh=True 时忽略已有缓存强制重取。"""
     fp = os.path.join(RAW, fname)
-    if os.path.exists(fp) and os.path.getsize(fp) > 20:
+    if not refresh and os.path.exists(fp) and os.path.getsize(fp) > 20:
         with open(fp, encoding="utf-8") as f:
             return json.load(f), True
     data = _get(path, params)
@@ -66,8 +66,11 @@ def fetch(path, params, fname):
 
 
 def main():
+    refresh = "--refresh" in sys.argv
     os.makedirs(RAW, exist_ok=True)
     calls = 0
+    if refresh:
+        print("!! --refresh：忽略缓存，强制重取全部年度")
 
     # 1. 字典表
     for name, path, fn in [
@@ -75,7 +78,7 @@ def main():
         ("countries", "/countries", "esr_countries.json"),
         ("uom", "/unitsOfMeasure", "esr_units.json"),
     ]:
-        d, cached = fetch(path, {}, fn)
+        d, cached = fetch(path, {}, fn, refresh=False)   # 字典表基本不变，始终用缓存
         calls += 0 if cached else 1
         print(f"[dict] {name}: {len(d)} 条 {'(缓存)' if cached else '(新取)'}")
 
@@ -86,7 +89,7 @@ def main():
             try:
                 d, cached = fetch(
                     f"/exports/commodityCode/{code}/allCountries/marketYear/{my}",
-                    {}, fn)
+                    {}, fn, refresh=refresh)
                 calls += 0 if cached else 1
                 weeks = sorted({r["weekEndingDate"][:10] for r in d})
                 print(f"[{cname}] MY{my}: {len(d)} 条, {len(weeks)} 周 "

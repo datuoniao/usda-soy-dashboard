@@ -383,13 +383,26 @@ def build():
     cp_ge = [r for r in cp if fnum(r, "ge_pct") is not None]
     cp_last = cp_ge[-1] if cp_ge else None
     cp_yago = None
+    cp_yago_exact = False
     if cp_last:
-        tgt = datetime.date.fromisoformat(cp_last["week_ending"]) - datetime.timedelta(days=364)
-        cands = [r for r in cp_ge
-                 if abs((datetime.date.fromisoformat(r["week_ending"]) - tgt).days) <= 10]
+        d0 = datetime.date.fromisoformat(cp_last["week_ending"])
+        tgt = d0 - datetime.timedelta(days=364)
+
+        def dist(r):
+            return abs((datetime.date.fromisoformat(r["week_ending"]) - tgt).days)
+
+        # 优先取 ±10 天内的同一日历周
+        cands = [r for r in cp_ge if dist(r) <= 10]
         if cands:
-            cp_yago = min(cands, key=lambda r: abs(
-                (datetime.date.fromisoformat(r["week_ending"]) - tgt).days))
+            cp_yago = min(cands, key=dist)
+            cp_yago_exact = True
+        else:
+            # 上一季若提前停报（NASS 在收获基本结束后不再发布 Condition 表），
+            # 退而取上一季内距目标日最近的一期，并在文案里标出真实日期
+            cands = [r for r in cp_ge
+                     if r["week_ending"][:4] == str(d0.year - 1) and dist(r) <= 45]
+            if cands:
+                cp_yago = min(cands, key=dist)
 
     def w(v):
         return f"{v/10:,.2f}" if v is not None else "—"
@@ -411,9 +424,14 @@ def build():
         kpi.append({"v": f'{float(dr_last["soy_d3plus"]):.0f}', "u": "%",
                     "l": "重度干旱率 D3+", "d": dr_last["week_ending"]})
     if cp_last:
+        if not cp_yago:
+            yago_txt = "—"
+        elif cp_yago_exact:
+            yago_txt = f'去年同期 {fnum(cp_yago,"ge_pct"):.0f}%'
+        else:
+            yago_txt = f'上一季末期 {cp_yago["week_ending"]} {fnum(cp_yago,"ge_pct"):.0f}%'
         kpi.append({"v": f'{fnum(cp_last,"ge_pct"):.0f}', "u": "%",
-                    "l": "美豆优良率", "d": f'{cp_last["week_ending"]} 当周；'
-                    + (f'去年同期 {fnum(cp_yago,"ge_pct"):.0f}%' if cp_yago else '—')})
+                    "l": "美豆优良率", "d": f'{cp_last["week_ending"]} 当周；{yago_txt}'})
     if crush_last:
         kpi.append({"v": f'{fnum(crush_last,"crush_margin_usd_bu"):.2f}', "u": "美元/蒲",
                     "l": "伊利诺伊压榨毛利", "d": f'{crush_last["week_ending"]}（当期数据止于此）'})

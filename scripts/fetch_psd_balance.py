@@ -54,10 +54,10 @@ def get(path):
         return json.loads(r.read().decode("utf-8"))
 
 
-def fetch_country(cc, my):
+def fetch_country(cc, my, refresh=False):
     """返回该国家/年度各属性「最新月份口径」的值。"""
     fn = os.path.join(RAW, f"{cc}_{my}.json")
-    if os.path.exists(fn) and os.path.getsize(fn) > 100:
+    if not refresh and os.path.exists(fn) and os.path.getsize(fn) > 100:
         d = json.load(open(fn, encoding="utf-8"))
     else:
         seg = "world" if cc == "00" else f"country/{cc}"
@@ -76,13 +76,14 @@ def fetch_country(cc, my):
 
 
 def main():
+    refresh = "--refresh" in sys.argv
     os.makedirs(RAW, exist_ok=True)
     rows = []
     for cc, name in COUNTRIES:
         got = 0
         for my in YEARS:
             try:
-                v = fetch_country(cc, my)
+                v = fetch_country(cc, my, refresh=refresh)
             except Exception as e:
                 print(f"  !! {name} MY{my} 失败: {type(e).__name__} {e}")
                 continue

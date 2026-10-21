@@ -92,11 +92,16 @@ def parse():
 
 
 def main():
-    if not os.path.exists(XLS) or os.path.getsize(XLS) < 10000:
+    # CONAB 每月更新一次新的 levantamento，故每次运行都尝试重新下载；
+    # 下载失败时回退到本地缓存，避免断网导致整条链路失败。
+    try:
         download()
-    else:
-        print(f"使用已缓存 {os.path.basename(XLS)}"
-              f"（{os.path.getsize(XLS)/1024:.0f} KB）")
+    except Exception as e:
+        if os.path.exists(XLS) and os.path.getsize(XLS) > 10000:
+            print(f"!! 下载失败（{type(e).__name__}），沿用缓存 "
+                  f"{os.path.getsize(XLS)/1024:.0f} KB")
+        else:
+            raise SystemExit(f"!! 下载失败且无本地缓存: {e}")
     recs = parse()
 
     rows = []

@@ -27,10 +27,11 @@ def get(path):
 
 
 def main():
+    refresh = "--refresh" in sys.argv
     out = {}
     for my in range(2019, 2027):
         fn = os.path.join(RAW, f"psd_soy_us_{my}.json")
-        if os.path.exists(fn) and os.path.getsize(fn) > 100:
+        if not refresh and os.path.exists(fn) and os.path.getsize(fn) > 100:
             d = json.load(open(fn, encoding="utf-8"))
         else:
             d = get(f"/commodity/{SOY}/country/US/year/{my}")
